@@ -1,0 +1,7 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "crates/ates-core",
+    "crates/ates-orchestrator",
+]
