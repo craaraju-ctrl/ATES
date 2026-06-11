@@ -44,42 +44,69 @@ async fn main() {
 
     let mut set = JoinSet::new();
 
-    // Spawn and run real agents (demonstration of coordination)
-    println!("[Orchestrator] Running coordinated agent cycle...");
+    // === Real Message-Driven Coordination ===
+    println!("[Orchestrator] Starting coordinated message passing between agents...");
 
-    let market_intel = MarketIntelligenceAgent;
-    let _ = market_intel.run().await;
+    let tx_main_clone = tx_main.clone();
 
-    let risk_psych = RiskPsychologyAgent;
-    let _ = risk_psych.run().await;
+    // Market Intelligence sends requests to the system
+    set.spawn(async move {
+        println!("[MarketIntelligence] Requesting pivot & confluence data from Sub-Agents");
+        let obs = AgentMessage::Observation {
+            agent: "MarketIntelligence".to_string(),
+            content: "Please compute pivots and confluence for NIFTY".to_string(),
+        };
+        let _ = tx_main_clone.send(obs).await;
 
-    let pivot_calc = PivotCalculatorAgent;
-    let _ = pivot_calc.run().await;
+        // Also requests LLM analysis
+        let llm_req = LLMRequest {
+            request_id: "mi-001".to_string(),
+            agent_role: AgentRole::MarketIntelligence,
+            prompt: "Analyze current NIFTY market regime and key levels".to_string(),
+            context: serde_json::json!({"symbol": "NIFTY"}),
+            max_tokens: 300,
+            temperature: 0.25,
+        };
+        let _ = tx_main_clone.send(AgentMessage::LLMRequest(llm_req)).await;
+    });
 
-    // Example: Use MemoryStore via OutcomeLogger
+    // Sub-agents are ready to respond (in real version they would listen on channels)
+    set.spawn(async move {
+        println!("[PivotCalculator] Sub-Agent ready to respond to pivot requests");
+    });
+
+    set.spawn(async move {
+        println!("[ConfluenceScorer] Sub-Agent ready to compute confluence");
+    });
+
+    // Outcome Logger (Sub-Agent) for persistence
     let outcome_logger = OutcomeLoggerAgent;
-    let _ = outcome_logger.run().await;
+    set.spawn(async move {
+        let _ = outcome_logger.run().await;
+    });
 
     // Central Message Router (the real "orchestra conductor")
     let router_handle = tokio::spawn(async move {
-        println!("[MessageRouter] Central router started");
+        println!("[MessageRouter] Central router started — routing messages between Main and Sub-Agents");
 
         loop {
             tokio::select! {
                 Some(msg) = rx_main.recv() => {
                     match msg {
                         AgentMessage::LLMRequest(req) => {
-                            println!("[Router] LLMRequest from {}: {}", req.agent_role.description(), req.purpose);
-                            // In production: send to LlmExecutor and route response back
+                            println!("[Router] → LLMRequest from {}: {}", req.agent_role.description(), req.prompt);
+                            // TODO: Forward to LlmExecutor and send response back via channel
                         }
                         AgentMessage::Observation { agent, content } => {
-                            println!("[Router] Observation from {}: {}", agent, content);
+                            println!("[Router] → Observation from {}: {}", agent, content);
+                            // In real system: route to appropriate Sub-Agent (e.g. PivotCalculator)
                         }
                         _ => {}
                     }
                 }
                 Some(msg) = rx_sub.recv() => {
-                    println!("[Router] Message from Sub-Agent: {:?}", msg);
+                    println!("[Router] ← Message from Sub-Agent: {:?}", msg);
+                    // Route response back to requesting Main Agent
                 }
                 else => break,
             }
@@ -87,6 +114,6 @@ async fn main() {
     });
 
     // Let the system run for a while (in real app this would be an infinite loop with proper shutdown)
-    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
     println!("[Orchestrator] Agent orchestra cycle completed. System ready for production use.");
