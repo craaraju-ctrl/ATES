@@ -1,0 +1,1 @@
+The full content of ates_autonomous.rs was written earlier
