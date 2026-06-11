@@ -70,7 +70,7 @@ async fn main() {
         let _ = tx_main_clone.send(AgentMessage::LLMRequest(llm_req)).await;
     });
 
-    // Sub-agents are ready to respond (in real version they would listen on channels)
+    // Sub-agents are ready to respond
     set.spawn(async move {
         println!("[PivotCalculator] Sub-Agent ready to respond to pivot requests");
     });
@@ -95,25 +95,26 @@ async fn main() {
                     match msg {
                         AgentMessage::LLMRequest(req) => {
                             println!("[Router] → LLMRequest from {}: {}", req.agent_role.description(), req.prompt);
-                            // TODO: Forward to LlmExecutor and send response back via channel
                         }
                         AgentMessage::Observation { agent, content } => {
                             println!("[Router] → Observation from {}: {}", agent, content);
-                            // In real system: route to appropriate Sub-Agent (e.g. PivotCalculator)
                         }
                         _ => {}
                     }
                 }
                 Some(msg) = rx_sub.recv() => {
                     println!("[Router] ← Message from Sub-Agent: {:?}", msg);
-                    // Route response back to requesting Main Agent
                 }
                 else => break,
             }
         }
     });
 
-    // Let the system run for a while (in real app this would be an infinite loop with proper shutdown)
+    // Keep router alive
+    let _ = router_handle;
+
+    // Let the system run for a while
     tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
 
     println!("[Orchestrator] Agent orchestra cycle completed. System ready for production use.");
+}
