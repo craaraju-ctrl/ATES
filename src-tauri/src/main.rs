@@ -1,6 +1,3 @@
-// Prevents additional console window on Windows in release
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 use tauri::{Manager, State};
 use tokio::sync::Mutex;
 use ates_core::{
@@ -32,8 +29,8 @@ impl AppState {
 }
 
 #[tauri::command]
-fn get_system_status(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
-    let app_state = state.lock().unwrap();
+async fn get_system_status(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
+    let app_state = state.lock().await;
     Ok(format!(
         "ATES Running | Initial Balance: {:.2} | Confluence Check: {}",
         app_state.config.initial_balance,
