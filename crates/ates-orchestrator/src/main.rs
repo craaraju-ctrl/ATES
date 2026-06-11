@@ -4,14 +4,19 @@ use tokio::sync::mpsc;
 use tokio::task::JoinSet;
 use ates_core::messages::{AgentMessage, LLMRequest};
 use ates_core::role::AgentRole;
+use ates_core::kronos_client::{KronosClient, KronosForecastRequest, OhlcvBar};
+use ates_core::config::Config;
 
 /// Main Orchestrator for ATES
 /// Coordinates Main Agents (LLM-capable) and Sub-Agents (deterministic)
-/// Uses message passing for clean separation of concerns.
+/// Now includes Kronos Forecasting Service integration
 
 #[tokio::main]
 async fn main() {
-    println!("=== ATES Orchestrator v0.15 — Agent & Sub-Agent Orchestra ===");
+    println!("=== ATES Orchestrator v0.16 — Agent & Sub-Agent Orchestra + Kronos Integration ===");
+
+    let config = Config::default();
+    let kronos_client = KronosClient::new(config.kronos_service_url.clone());
 
     // Create message channels for agent communication
     let (tx_main, mut rx_main) = mpsc::channel::<AgentMessage>(100);
@@ -19,10 +24,10 @@ async fn main() {
 
     let mut set = JoinSet::new();
 
-    // === Real Message-Driven Coordination ===
     println!("[Orchestrator] Starting coordinated message passing between agents...");
 
     let tx_main_clone = tx_main.clone();
+    let kronos_client_clone = kronos_client.clone(); // Note: In real impl, wrap in Arc if needed
 
     // Market Intelligence sends requests to the system
     set.spawn(async move {
@@ -42,6 +47,51 @@ async fn main() {
             temperature: 0.25,
         };
         let _ = tx_main_clone.send(AgentMessage::LLMRequest(llm_req)).await;
+    });
+
+    // === NEW: Kronos Forecasting Demo ===
+    set.spawn(async move {
+        println!("[KronosIntegration] Demonstrating forecast request to Kronos Service...");
+
+        // Sample NIFTY-like OHLCV data (last few candles)
+        let sample_ohlcv = vec![
+            OhlcvBar {
+                timestamp: "2025-06-11T09:15:00Z".to_string(),
+                open: 24500.0,
+                high: 24550.0,
+                low: 24480.0,
+                close: 24520.0,
+                volume: 125000.0,
+            },
+            OhlcvBar {
+                timestamp: "2025-06-11T09:20:00Z".to_string(),
+                open: 24520.0,
+                high: 24580.0,
+                low: 24510.0,
+                close: 24565.0,
+                volume: 98000.0,
+            },
+        ];
+
+        let forecast_req = KronosForecastRequest {
+            symbol: "NIFTY".to_string(),
+            ohlcv: sample_ohlcv,
+            pred_len: 5,
+            temperature: 0.8,
+            top_p: 0.9,
+            sample_count: 1,
+        };
+
+        match kronos_client_clone.forecast(forecast_req).await {
+            Ok(resp) => {
+                println!("[KronosIntegration] Forecast received for {}: {} candles", resp.symbol, resp.forecasts.len());
+                println!("[KronosIntegration] Message: {}", resp.message);
+                // TODO: Feed resp.forecasts into disciplined_core or confluence scoring
+            }
+            Err(e) => {
+                println!("[KronosIntegration] Forecast call failed (is Kronos service running?): {}", e);
+            }
+        }
     });
 
     set.spawn(async move {
@@ -83,7 +133,7 @@ async fn main() {
 
     let _ = router_handle;
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(4)).await;
+    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await;
 
-    println!("[Orchestrator] Agent orchestra cycle completed. System ready for production use.");
+    println!("[Orchestrator] Agent orchestra cycle completed. Kronos integration active.");
 }
