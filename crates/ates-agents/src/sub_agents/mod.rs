@@ -6,6 +6,7 @@ pub mod drawdown_monitor;
 pub mod red_folder_checker;
 pub mod overtrading_preventer;
 pub mod outcome_logger;
+pub mod pattern_retriever;
 
 // Re-export
 pub use risk_calculator::RiskCalculatorAgent;
@@ -16,3 +17,4 @@ pub use drawdown_monitor::DrawdownMonitorAgent;
 pub use red_folder_checker::RedFolderCheckerAgent;
 pub use overtrading_preventer::OvertradingPreventerAgent;
 pub use outcome_logger::OutcomeLoggerAgent;
+pub use pattern_retriever::PatternRetrieverAgent;
