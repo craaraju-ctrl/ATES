@@ -10,11 +10,20 @@ pub mod broker;
 pub mod execution;
 
 pub use disciplined_core::{
-    calculate_confluence_score, calculate_pivot_points, check_risk_limits, is_in_trading_session,
-    validate_trade_setup, DisciplineCheck, DisciplineRules, MarketContext, PivotLevels, PivotMethod,
+    calculate_confluence_score,
+    calculate_pivot_points,
+    check_risk_limits,
+    is_in_trading_session,
+    validate_trade_setup,
+    DisciplineCheck,
+    DisciplineRules,
+    MarketContext,
+    PivotLevels,
+    PivotMethod,
     TrendDirection,
+    get_discipline_summary,
 };
-pub use backtest::{TradeSetup, TradeDirection};
+pub use backtest::{TradeSetup, TradeDirection, Backtester, BacktestResult};
 pub use agent::{Agent, AgentTier};
 pub use memory::MemoryStore;
 pub use messages::{AgentMessage, LLMRequest, LLMResponse};
