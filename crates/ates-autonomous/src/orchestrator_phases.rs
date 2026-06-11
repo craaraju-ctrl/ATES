@@ -1,6 +1,6 @@
 use std::error::Error;
 use chrono::Utc;
-use ates_core::TradeDirection;
+use ates_core::{TradeDirection, Agent, PivotLevels};
 use crate::state::SharedState;
 
 impl crate::orchestrator_struct::AutonomousOrchestrator {
@@ -21,7 +21,7 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
         Ok(true)
     }
 
-    pub async fn phase2_market_analysis(&self, symbol: &str, price: f64) -> Result<(f64, crate::types::PivotLevels), Box<dyn Error + Send + Sync>> {
+    pub async fn phase2_market_analysis(&self, symbol: &str, price: f64) -> Result<(f64, PivotLevels), Box<dyn Error + Send + Sync>> {
         println!("\n[PHASE 2] Market Analysis for {}", symbol);
         let (confluence, pivots) = self.market_intel.analyze_market(symbol, price).await?;
         let _ = self.pivot_calc.run(Some(ates_core::AgentInput::PivotRequest { high: price*1.01, low: price*0.99, close: price })).await;

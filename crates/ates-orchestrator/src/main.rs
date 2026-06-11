@@ -104,7 +104,7 @@ async fn main() {
 
     let outcome_logger = OutcomeLoggerAgent;
     set.spawn(async move {
-        let _ = outcome_logger.run().await;
+        let _ = outcome_logger.run(None).await;
     });
 
     let router_handle = tokio::spawn(async move {

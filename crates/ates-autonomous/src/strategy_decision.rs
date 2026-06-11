@@ -19,7 +19,7 @@ impl StrategyDecisionAgent {
         Self { state }
     }
 
-    async fn generate_signal(
+    pub async fn generate_signal(
         &self,
         symbol: &str,
         direction: ates_core::TradeDirection,

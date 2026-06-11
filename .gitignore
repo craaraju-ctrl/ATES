@@ -1,0 +1,6 @@
+/target
+/src-tauri/target
+/src-tauri/gen
+.DS_Store
+ates_autonomous.redb
+ates_memory.redb

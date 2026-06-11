@@ -14,7 +14,7 @@ impl ExecutionCoordinatorAgent {
         Self { state }
     }
 
-    async fn execute_paper_trade(&self, signal: &TradeSignal) -> Result<String, Box<dyn Error + Send + Sync>> {
+    pub async fn execute_paper_trade(&self, signal: &TradeSignal) -> Result<String, Box<dyn Error + Send + Sync>> {
         println!(
             "[ExecutionCoordinator] Executing paper trade: {} {} @ {:.2} | Qty: {:.0}",
             signal.symbol,

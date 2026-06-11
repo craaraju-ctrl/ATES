@@ -10,7 +10,7 @@ pub struct TradeSetup {
     pub context: MarketContext,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum TradeDirection {
     Long,
     Short,

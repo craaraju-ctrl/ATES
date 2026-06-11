@@ -8,6 +8,8 @@ pub mod backtest;
 pub mod config;
 pub mod broker;
 pub mod execution;
+pub mod kronos_client;
+
 
 pub use disciplined_core::{
     calculate_confluence_score,
@@ -30,3 +32,4 @@ pub use messages::{AgentMessage, LLMRequest, LLMResponse};
 pub use role::AgentRole;
 pub use llm::LlmExecutor;
 pub use config::Config;
+pub use execution::ExecutionEngine;

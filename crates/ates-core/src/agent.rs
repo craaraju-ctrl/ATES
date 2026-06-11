@@ -34,3 +34,13 @@ pub trait Agent: Send + Sync {
     fn tier(&self) -> AgentTier;
     async fn run(&self, input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>>;
 }
+
+impl AgentOutput {
+    pub fn is_ok(&self) -> bool {
+        match self {
+            AgentOutput::RiskResult(check) => check.passed,
+            AgentOutput::Done | AgentOutput::NoOutput => true,
+            _ => true,
+        }
+    }
+}

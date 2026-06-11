@@ -33,6 +33,7 @@ pub struct KronosForecastResponse {
 }
 
 /// HTTP client to communicate with the Kronos Forecasting Service
+#[derive(Clone)]
 pub struct KronosClient {
     client: Client,
     base_url: String,

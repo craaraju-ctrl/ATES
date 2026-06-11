@@ -50,8 +50,8 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
 
         let _ = self.phase4_reflection(symbol).await?;
         let signal_opt = self.phase5_strategy_decision(symbol, direction, entry, stop, target).await?;
-        let executed = if let Some(sig) = signal_opt {
-            self.phase6_portfolio_and_execution(&sig).await?
+        let executed = if let Some(ref sig) = signal_opt {
+            self.phase6_portfolio_and_execution(sig).await?
         } else { false };
 
         Ok(PipelineSummary {

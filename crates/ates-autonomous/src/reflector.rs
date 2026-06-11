@@ -13,7 +13,7 @@ impl ReflectorAgent {
         Self { state }
     }
 
-    async fn reflect(&self, symbol: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    pub async fn reflect(&self, symbol: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
         println!("[Reflector] Reflecting on past decisions for {}...", symbol);
 
         let today_key = format!("decisions/{}/{}", symbol, Utc::now().format("%Y%m%d"));

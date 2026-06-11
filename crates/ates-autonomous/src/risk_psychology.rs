@@ -17,7 +17,7 @@ impl RiskPsychologyAgent {
         Self { state }
     }
 
-    async fn analyze_risk(&self, context: &MarketContext) -> Result<RiskAnalysis, Box<dyn Error + Send + Sync>> {
+    pub async fn analyze_risk(&self, context: &MarketContext) -> Result<RiskAnalysis, Box<dyn Error + Send + Sync>> {
         let portfolio = self.state.portfolio.read().await;
         let rules = self.state.rules.read().await;
 
@@ -40,24 +40,25 @@ impl RiskPsychologyAgent {
 
         if portfolio.consecutive_losses >= 2 {
             psych_warnings.push(format!(
-                "\u26a0\ufe0f {} consecutive losses - risk of revenge trading",
+                "\u{26a0}\u{fe0f} {} consecutive losses - risk of revenge trading",
                 portfolio.consecutive_losses
             ));
         }
 
         if portfolio.total_trades_today >= 5 {
             psych_warnings.push(format!(
-                "\u26a0\ufe0f {} trades today - approaching overtrading threshold",
+                "\u{26a0}\u{fe0f} {} trades today - approaching overtrading threshold",
                 portfolio.total_trades_today
             ));
         }
 
         if daily_dd >= rules.max_daily_drawdown * 0.7 {
             psych_warnings.push(format!(
-                "\u26a0\ufe0f Daily drawdown {:.1}% approaching limit {:.1}%",
+                "\u{26a0}\u{fe0f} Daily drawdown {:.1}% approaching limit {:.1}%",
                 daily_dd * 100.0, rules.max_daily_drawdown * 100.0
             ));
         }
+
 
         let recommendation = if !portfolio.trading_enabled {
             RiskRecommendation::Halt
@@ -118,7 +119,7 @@ impl Agent for RiskPsychologyAgent {
         };
 
         let analysis = self.analyze_risk(&ctx).await?;
-        let mut final_check = check_risk_limits(&ctx, &self.state.rules.read().await);
+        let mut final_check = check_risk_limits(&ctx, &*self.state.rules.read().await);
 
         if analysis.recommendation == RiskRecommendation::Halt {
             final_check.passed = false;

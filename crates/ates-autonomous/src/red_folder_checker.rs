@@ -3,8 +3,7 @@ use std::error::Error;
 use chrono::Utc;
 
 use crate::state::SharedState;
-use crate::types::{AgentInput, AgentOutput, DisciplineCheck};
-use ates_core::Agent;
+use ates_core::{Agent, AgentInput, AgentOutput, DisciplineCheck};
 
 /// SUB AGENT 6 — RedFolderCheckerAgent (Deterministic)
 /// Checks for high-impact economic events that warrant trading restrictions

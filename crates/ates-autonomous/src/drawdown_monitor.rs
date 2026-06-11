@@ -3,8 +3,7 @@ use std::error::Error;
 use chrono::Utc;
 
 use crate::state::SharedState;
-use crate::types::{AgentInput, AgentOutput, DisciplineCheck};
-use ates_core::Agent;
+use ates_core::{Agent, AgentInput, AgentOutput, DisciplineCheck};
 
 /// SUB AGENT 5 — DrawdownMonitorAgent (Deterministic)
 /// Monitors daily drawdown and triggers halt when limits are breached

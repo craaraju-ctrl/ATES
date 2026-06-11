@@ -43,10 +43,10 @@ impl SharedState {
     }
 }
 
-pub async fn initialize_autonomous_system() -> Result<crate::orchestrator::AutonomousOrchestrator, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn initialize_autonomous_system() -> Result<crate::AutonomousOrchestrator, Box<dyn std::error::Error + Send + Sync>> {
     let memory = MemoryStore::new("ates_autonomous.redb")?;
     let rules = DisciplineRules::default();
     let config = Config::default();
     let state = SharedState::new(memory, rules, config);
-    Ok(crate::orchestrator::AutonomousOrchestrator::new(state))
+    Ok(crate::AutonomousOrchestrator::new(state))
 }

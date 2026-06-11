@@ -1,5 +1,6 @@
 use tauri::{Manager, State};
 use tokio::sync::Mutex;
+use chrono;
 use ates_core::{
     Config, DisciplineRules, ExecutionEngine, MemoryStore,
     validate_trade_setup, TradeSetup, TradeDirection,
@@ -93,7 +94,8 @@ async fn execute_trade(
         return Err("INVALID STOP: Stop Loss must be below Entry for Long and above for Short".to_string());
     }
 
-    match app_state.execution.execute_setup(setup, &app_state.rules).await {
+    let rules = app_state.rules.clone();
+    match app_state.execution.execute_setup(setup, &rules).await {
         Ok(true) => Ok(format!("TRADE EXECUTED SUCCESSFULLY: {} @ {}", symbol, entry_price)),
         Ok(false) => Ok("Trade passed validation but engine conditions not met (paper mode).".to_string()),
         Err(e) => Err(format!("EXECUTION ERROR: {}", e)),
