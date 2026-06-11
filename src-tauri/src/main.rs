@@ -58,7 +58,6 @@ async fn execute_trade(
         _ => return Err("Invalid direction. Use 'long' or 'short'".to_string()),
     };
 
-    // Create a minimal MarketContext for validation (in real use this would come from data feed)
     let context = ates_core::MarketContext {
         symbol: symbol.clone(),
         current_price: entry_price,
@@ -81,7 +80,6 @@ async fn execute_trade(
         context,
     );
 
-    // Run discipline check
     let check = validate_trade_setup(&setup.context, &app_state.rules);
 
     if !check.passed {
@@ -89,7 +87,6 @@ async fn execute_trade(
         return Err(format!("DISCIPLINE REJECTED: {}", reasons));
     }
 
-    // Additional safety checks
     if entry_price <= 0.0 || stop_loss <= 0.0 || take_profit <= 0.0 {
         return Err("INVALID PRICES: Entry, Stop Loss and Take Profit must be positive".to_string());
     }
@@ -99,7 +96,6 @@ async fn execute_trade(
         return Err("INVALID STOP: Stop Loss must be below Entry for Long and above for Short".to_string());
     }
 
-    // Execute via the engine
     match app_state.execution.execute_setup(setup, &app_state.rules).await {
         Ok(true) => Ok(format!("TRADE EXECUTED SUCCESSFULLY: {} @ {}", symbol, entry_price)),
         Ok(false) => Ok("Trade passed validation but engine conditions not met (paper mode).".to_string()),
@@ -108,12 +104,12 @@ async fn execute_trade(
 }
 
 #[tauri::command]
-fn check_discipline(
+async fn check_discipline(
     symbol: String,
     price: f64,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<String, String> {
-    let app_state = state.lock().unwrap();
+    let app_state = state.lock().await;
 
     let context = ates_core::MarketContext {
         symbol,
@@ -138,13 +134,11 @@ fn check_discipline(
 }
 
 #[tauri::command]
-fn run_backtest(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
-    let app_state = state.lock().unwrap();
+async fn run_backtest(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
+    let app_state = state.lock().await;
 
-    // Simple backtest simulation (in production this would load real historical data)
     let mut backtester = ates_core::Backtester::new(app_state.rules.clone());
-    
-    // Generate some dummy market data for demonstration
+
     let mut dummy_data = Vec::new();
     for i in 0..50 {
         dummy_data.push(ates_core::MarketContext {
@@ -177,30 +171,17 @@ async fn trigger_orchestra_cycle(state: State<'_, Mutex<AppState>>) -> Result<St
     let app_state = state.lock().await;
 
     println!("[Tauri] === FULL ORCHESTRA CYCLE TRIGGERED FROM UI ===");
-
-    // Phase 1: Core Systems Check
     println!("[Orchestra] Phase 1: Validating Disciplined Core...");
-    
-    // Phase 2: Main Agents
     println!("[Orchestra] Phase 2: Activating Main Agents (MarketIntelligence, RiskPsychology, Reflector)...");
-    
-    // Phase 3: Sub-Agents
     println!("[Orchestra] Phase 3: Activating Sub-Agents (RiskCalculator, PivotCalculator)...");
-    
-    // Phase 4: Message Routing Simulation
     println!("[Orchestra] Phase 4: Running Message Router coordination...");
-    
-    // Phase 5: Execution Layer
     println!("[Orchestra] Phase 5: ExecutionEngine ready for validated setups...");
 
-    let status = "ORCHESTRA CYCLE COMPLETE | All Main + Sub-Agents coordinated | Message Router active | Ready for trading decisions".to_string();
-
-    Ok(status)
+    Ok("ORCHESTRA CYCLE COMPLETE | All Main + Sub-Agents coordinated | Message Router active | Ready for trading decisions".to_string())
 }
 
 #[tokio::main]
 async fn main() {
-    // Initialize logging
     env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
 
     log::info!("[ATES UI] Starting Tauri application...");
