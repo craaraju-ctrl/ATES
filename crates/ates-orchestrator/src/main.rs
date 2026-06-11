@@ -15,7 +15,7 @@ async fn main() {
 
     // Create message channels for agent communication
     let (tx_main, mut rx_main) = mpsc::channel::<AgentMessage>(100);
-    let (tx_sub, mut rx_sub) = mpsc::channel::<AgentMessage>(100);
+    let (_tx_sub, mut rx_sub) = mpsc::channel::<AgentMessage>(100);
 
     let mut set = JoinSet::new();
 
