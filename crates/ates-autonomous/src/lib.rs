@@ -13,10 +13,11 @@ pub mod risk_calculator;
 pub mod pivot_calculator;
 pub mod confluence_scorer;
 
-pub mod orchestrator;
+pub mod orchestrator_struct;
+pub mod orchestrator_phases;
+pub mod orchestrator_pipeline;
 
-pub use state::initialize_autonomous_system;
-pub use orchestrator::AutonomousOrchestrator;
+pub use orchestrator_struct::AutonomousOrchestrator;
 
 pub async fn main_autonomous() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("ATES Autonomous System Initialized");
