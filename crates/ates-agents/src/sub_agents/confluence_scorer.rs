@@ -3,12 +3,12 @@ use std::error::Error;
 
 use ates_core::{Agent, AgentTier};
 
-pub struct PivotCalculatorAgent;
+pub struct ConfluenceScorerAgent;
 
 #[async_trait]
-impl Agent for PivotCalculatorAgent {
+impl Agent for ConfluenceScorerAgent {
     fn name(&self) -> &str {
-        "PivotCalculatorAgent"
+        "ConfluenceScorerAgent"
     }
 
     fn tier(&self) -> AgentTier {
@@ -16,8 +16,8 @@ impl Agent for PivotCalculatorAgent {
     }
 
     async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        println!("[{}] Calculating pivot points using Disciplined Core...", self.name());
-        // TODO: Call calculate_pivot_points from disciplined_core and return results via messages
+        println!("[{}] Calculating confluence score using pivots, trend, and volume...", self.name());
+        // TODO: Use calculate_confluence_score from disciplined_core
         Ok(())
     }
 }

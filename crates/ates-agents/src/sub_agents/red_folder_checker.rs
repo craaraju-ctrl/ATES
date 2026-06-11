@@ -3,12 +3,12 @@ use std::error::Error;
 
 use ates_core::{Agent, AgentTier};
 
-pub struct PivotCalculatorAgent;
+pub struct RedFolderCheckerAgent;
 
 #[async_trait]
-impl Agent for PivotCalculatorAgent {
+impl Agent for RedFolderCheckerAgent {
     fn name(&self) -> &str {
-        "PivotCalculatorAgent"
+        "RedFolderCheckerAgent"
     }
 
     fn tier(&self) -> AgentTier {
@@ -16,8 +16,8 @@ impl Agent for PivotCalculatorAgent {
     }
 
     async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        println!("[{}] Calculating pivot points using Disciplined Core...", self.name());
-        // TODO: Call calculate_pivot_points from disciplined_core and return results via messages
+        println!("[{}] Checking for red folder / high-impact event days...", self.name());
+        // TODO: Integrate external calendar or config for red folder days
         Ok(())
     }
 }

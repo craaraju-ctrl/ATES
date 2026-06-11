@@ -3,12 +3,12 @@ use std::error::Error;
 
 use ates_core::{Agent, AgentTier};
 
-pub struct PivotCalculatorAgent;
+pub struct SessionTimerAgent;
 
 #[async_trait]
-impl Agent for PivotCalculatorAgent {
+impl Agent for SessionTimerAgent {
     fn name(&self) -> &str {
-        "PivotCalculatorAgent"
+        "SessionTimerAgent"
     }
 
     fn tier(&self) -> AgentTier {
@@ -16,8 +16,8 @@ impl Agent for PivotCalculatorAgent {
     }
 
     async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        println!("[{}] Calculating pivot points using Disciplined Core...", self.name());
-        // TODO: Call calculate_pivot_points from disciplined_core and return results via messages
+        println!("[{}] Checking if current time is within London/NY trading sessions...", self.name());
+        // TODO: Use is_in_trading_session from disciplined_core
         Ok(())
     }
 }

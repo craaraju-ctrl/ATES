@@ -3,12 +3,12 @@ use std::error::Error;
 
 use ates_core::{Agent, AgentTier};
 
-pub struct ReflectorAgent;
+pub struct ExecutionCoordinatorAgent;
 
 #[async_trait]
-impl Agent for ReflectorAgent {
+impl Agent for ExecutionCoordinatorAgent {
     fn name(&self) -> &str {
-        "ReflectorAgent"
+        "ExecutionCoordinatorAgent"
     }
 
     fn tier(&self) -> AgentTier {
@@ -16,8 +16,7 @@ impl Agent for ReflectorAgent {
     }
 
     async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        println!("[{}] Reviewing past decisions, outcomes, and learning patterns from MemoryStore...", self.name());
-        // TODO: Query MemoryStore for DecisionRecord and improve future decisions
+        println!("[{}] Coordinating order execution through BrokerAdapter and ExecutionEngine...", self.name());
         Ok(())
     }
 }
