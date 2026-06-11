@@ -17,7 +17,7 @@ impl RiskPsychologyAgent {
         Self { state }
     }
 
-    pub async fn analyze_risk(&self, context: &MarketContext) -> Result<RiskAnalysis, Box<dyn Error + Send + Sync>> {
+    pub async fn analyze_risk(&self, _context: &MarketContext) -> Result<RiskAnalysis, Box<dyn Error + Send + Sync>> {
         let portfolio = self.state.portfolio.read().await;
         let rules = self.state.rules.read().await;
 

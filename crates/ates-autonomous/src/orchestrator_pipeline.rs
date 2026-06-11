@@ -1,7 +1,5 @@
 use std::error::Error;
-use chrono::Utc;
 use ates_core::TradeDirection;
-use crate::state::SharedState;
 use crate::types::{TradeSignal, PipelineSummary};
 
 impl crate::orchestrator_struct::AutonomousOrchestrator {
@@ -41,7 +39,7 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
             return Ok(PipelineSummary { executed: false, phase_results: vec![], total_duration_ms: start.elapsed().as_millis() as u64, final_signal: None, reason: "Discipline failed".to_string() });
         }
 
-        let (confluence, _pivots) = self.phase2_market_analysis(symbol, entry).await?;
+        let (_confluence, _pivots) = self.phase2_market_analysis(symbol, entry).await?;
         let risk = self.phase3_risk_assessment(symbol, entry).await?;
 
         if risk.recommendation == crate::types::RiskRecommendation::Halt {

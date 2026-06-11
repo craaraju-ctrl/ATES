@@ -1,6 +1,5 @@
 use async_trait::async_trait;
 use std::error::Error;
-use chrono::Utc;
 
 use crate::state::SharedState;
 use ates_core::{Agent, AgentInput, AgentOutput, DisciplineCheck};

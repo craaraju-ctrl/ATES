@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc, Duration};
 use serde::{Serialize, Deserialize};
-use ates_core::{TradeDirection, MarketContext, PivotLevels, DisciplineCheck};
+use ates_core::TradeDirection;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeSignal {

@@ -1,7 +1,6 @@
 use std::error::Error;
 use chrono::Utc;
-use ates_core::{TradeDirection, Agent, PivotLevels};
-use crate::state::SharedState;
+use ates_core::{Agent, PivotLevels};
 
 impl crate::orchestrator_struct::AutonomousOrchestrator {
     pub async fn phase1_discipline_checks(&self) -> Result<bool, Box<dyn Error + Send + Sync>> {

@@ -17,10 +17,10 @@ impl ReflectorAgent {
         println!("[Reflector] Reflecting on past decisions for {}...", symbol);
 
         let today_key = format!("decisions/{}/{}", symbol, Utc::now().format("%Y%m%d"));
-        let recent = self.state.memory.get_decision(&today_key).ok().flatten();
+        let _recent = self.state.memory.get_decision(&today_key).ok().flatten();
 
         let pattern_key = format!("patterns/{}", symbol);
-        let patterns = self.state.memory.get_decision(&pattern_key).ok().flatten();
+        let _patterns = self.state.memory.get_decision(&pattern_key).ok().flatten();
 
         let portfolio = self.state.portfolio.read().await;
 

@@ -1,4 +1,4 @@
-use tauri::{Manager, State};
+use tauri::State;
 use tokio::sync::Mutex;
 use chrono;
 use ates_core::{
@@ -167,7 +167,7 @@ async fn run_backtest(state: State<'_, Mutex<AppState>>) -> Result<String, Strin
 
 #[tauri::command]
 async fn trigger_orchestra_cycle(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
-    let app_state = state.lock().await;
+    let _app_state = state.lock().await;
 
     println!("[Tauri] === FULL ORCHESTRA CYCLE TRIGGERED FROM UI ===");
     println!("[Orchestra] Phase 1: Validating Disciplined Core...");

@@ -8,7 +8,7 @@ use ates_core::{
 };
 use crate::state::SharedState;
 use crate::types::TradeSignal;
-use crate::helpers::{calculate_position_size, calculate_risk_reward, get_indian_session_info, signal_quality_check};
+use crate::helpers::{calculate_position_size, calculate_risk_reward, get_indian_session_info};
 
 pub struct StrategyDecisionAgent {
     pub state: SharedState,
@@ -114,7 +114,7 @@ impl Agent for StrategyDecisionAgent {
     fn name(&self) -> &str { "StrategyDecisionAgent" }
     fn tier(&self) -> AgentTier { AgentTier::Main }
 
-    async fn run(&self, input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
+    async fn run(&self, _input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
         println!("[StrategyDecisionAgent] Generating trade signal...");
         Ok(AgentOutput::Done)
     }
