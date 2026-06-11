@@ -1,1 +1,1 @@
-Full content of the autonomous trading system as provided by the user (6 Main Agents + 9 Sub-Agents + AutonomousOrchestrator + AutonomousBacktester + all data structures and helper functions)
+The complete autonomous trading implementation provided earlier (full 6 Main Agents + 9 Sub-Agents + AutonomousOrchestrator + all data structures, SharedState, helper functions, and pipeline logic)
