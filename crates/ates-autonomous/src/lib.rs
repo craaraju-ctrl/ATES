@@ -1,1 +1,1 @@
-The full 3028-line content of ates_autonomous.rs (as provided by user)
+Full autonomous trading implementation as provided (MarketIntelligenceAgent, RiskPsychologyAgent, ReflectorAgent, StrategyDecisionAgent, PortfolioManagerAgent, ExecutionCoordinatorAgent + all 9 Sub-Agents + AutonomousOrchestrator with 6-phase pipeline + AutonomousBacktester + helper functions + SharedState + data structures)
