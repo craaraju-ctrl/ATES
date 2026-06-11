@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATES - Autonomous Trading Execution System</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+</head>
+<body>
+  <div class="binance-app">
+    
+    <!-- Top Navigation Bar -->
+    <header class="binance-navbar">
+      <div class="nav-left">
+        <div class="brand">
+          <span class="brand-logo">⚡</span>
+          <span class="brand-text">ATES</span>
+        </div>
+        <div class="market-ticker">
+          <span class="ticker-symbol" id="ticker-name">NIFTY / INR</span>
+          <div class="ticker-item">
+            <span class="ticker-label">Last Price</span>
+            <span class="ticker-val success" id="ticker-price">₹24,500.00</span>
+          </div>
+          <div class="ticker-item">
+            <span class="ticker-label">24h Change</span>
+            <span class="ticker-val success" id="ticker-change">+1.24%</span>
+          </div>
+          <div class="ticker-item">
+            <span class="ticker-label">24h High</span>
+            <span class="ticker-val" id="ticker-high">₹24,580.00</span>
+          </div>
+          <div class="ticker-item">
+            <span class="ticker-label">24h Low</span>
+            <span class="ticker-val" id="ticker-low">₹24,450.00</span>
+          </div>
+        </div>
+      </div>
+      <div class="nav-right">
+        <div class="balance-container">
+          <span class="bal-label">Margin Balance:</span>
+          <span class="bal-val" id="margin-balance">₹100,000.00</span>
+        </div>
+        <div class="system-status-indicator">
+          <div class="status-dot success" id="status-dot"></div>
+          <span id="status-text">Core Online</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Grid Workspace -->
+    <div class="binance-workspace">
+      
+      <!-- Left Sidebar: Watchlist / Markets -->
+      <aside class="watchlist-panel">
+        <div class="panel-header">
+          <h4>Watchlist Markets</h4>
+        </div>
+        <div class="watchlist-tabs">
+          <button class="wl-tab active" data-type="all">ALL</button>
+          <button class="wl-tab" data-type="stocks">STOCKS</button>
+          <button class="wl-tab" data-type="crypto">CRYPTO</button>
+        </div>
+        <div class="watchlist-body">
+          <div class="wl-header">
+            <span>Symbol</span>
+            <span>Price</span>
+            <span>24h Change</span>
+          </div>
+          <div class="wl-list" id="watchlist-list">
+            <!-- Dynamically populated by JS -->
+          </div>
+        </div>
+      </aside>
+
+      <!-- Center Pane: Controls, Logs, and System Dashboard -->
+      <section class="center-trading-pane">
+        
+        <!-- TradingView Chart Panel -->
+        <div class="chart-panel">
+          <div id="tradingview-chart-container" style="width: 100%; height: 100%; position: relative;">
+            <canvas id="fallback-chart-canvas" style="width: 100%; height: 100%; display: none;"></canvas>
+          </div>
+        </div>
+
+        <!-- Bottom Tab Panel -->
+        <div class="bottom-tab-panel">
+          <div class="trading-tabs">
+            <button class="tab-btn active" data-pane="positions">Positions & Margin Holdings</button>
+            <button class="tab-btn" data-pane="pivots">Pivot Levels</button>
+            <button class="tab-btn" data-pane="console">Market Intelligence Logs</button>
+            <button class="tab-btn" data-pane="inspector">Disciplined Inspector</button>
+            <button class="tab-btn" data-pane="backtester">Simulation Backtester</button>
+          </div>
+
+          <div class="tab-content-area">
+            
+            <!-- Positions view -->
+            <div id="pane-positions" class="pane-view active">
+              <div class="positions-table-wrapper">
+                <table class="pro-table">
+                  <thead>
+                    <tr>
+                      <th>Symbol</th>
+                      <th>Direction</th>
+                      <th>Quantity</th>
+                      <th>Entry Price</th>
+                      <th>Mark Price</th>
+                      <th>Unrealized PNL</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="positions-table-body">
+                    <tr class="no-data">
+                      <td colspan="7">No open positions. Execute an order in the ticket pane.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Pivot Levels Order Book view -->
+            <div id="pane-pivots" class="pane-view">
+              <div class="order-book-table" style="max-width: 450px; border: 1px solid var(--border-color); border-radius: 4px; padding: 10px; background-color: rgba(0,0,0,0.15);">
+                <div class="ob-header" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; margin-bottom: 6px;">
+                  <span>Level</span>
+                  <span style="text-align: right;">Price</span>
+                  <span style="text-align: right;">Distance</span>
+                </div>
+                <div class="ob-list asks" id="ob-asks">
+                  <div class="ob-row" data-target="tp" data-val-id="val-r3" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
+                    <span class="lbl danger">R3 (Target 3)</span>
+                    <span id="val-r3" style="text-align: right;">24,725.00</span>
+                    <span id="dist-r3" style="text-align: right;">+0.92%</span>
+                  </div>
+                  <div class="ob-row" data-target="tp" data-val-id="val-r2" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
+                    <span class="lbl danger">R2 (Target 2)</span>
+                    <span id="val-r2" style="text-align: right;">24,650.00</span>
+                    <span id="dist-r2" style="text-align: right;">+0.61%</span>
+                  </div>
+                  <div class="ob-row" data-target="tp" data-val-id="val-r1" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
+                    <span class="lbl danger">R1 (Target 1)</span>
+                    <span id="val-r1" style="text-align: right;">24,575.00</span>
+                    <span id="dist-r1" style="text-align: right;">+0.31%</span>
+                  </div>
+                </div>
+                <div class="ob-spread" data-target="entry" data-val-id="val-pivot" style="cursor: pointer; display: flex; justify-content: space-between; padding: 6px 8px; margin: 8px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px;">
+                  <span class="spread-price success" id="ob-current-spot">24,500.00</span>
+                  <span class="spread-label">Pivot: <span id="val-pivot">24,500.00</span></span>
+                </div>
+                <div class="ob-list bids" id="ob-bids">
+                  <div class="ob-row" data-target="sl" data-val-id="val-s1" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
+                    <span class="lbl success">S1 (Support 1)</span>
+                    <span id="val-s1" style="text-align: right;">24,425.00</span>
+                    <span id="dist-s1" style="text-align: right;">-0.31%</span>
+                  </div>
+                  <div class="ob-row" data-target="sl" data-val-id="val-s2" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
+                    <span class="lbl success">S2 (Support 2)</span>
+                    <span id="val-s2" style="text-align: right;">24,350.00</span>
+                    <span id="dist-s2" style="text-align: right;">-0.61%</span>
+                  </div>
+                  <div class="ob-row" data-target="sl" data-val-id="val-s3" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
+                    <span class="lbl success">S3 (Support 3)</span>
+                    <span id="val-s3" style="text-align: right;">24,275.00</span>
+                    <span id="dist-s3" style="text-align: right;">-0.92%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Orchestrator Console logs -->
+            <div id="pane-console" class="pane-view">
+              <div class="pro-console-card">
+                <div class="console-tools">
+                  <span class="c-title">Deals & Coordination Streams</span>
+                  <button id="btn-clear-console" class="text-link-btn">Clear Logs</button>
+                </div>
+                <div class="pro-console-body" id="console-logs">
+                  <div class="log-entry system">[System] Connection established. Core trading engine synced to IST.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Disciplined inspector -->
+            <div id="pane-inspector" class="pane-view">
+              <div class="card-body">
+                <h3 class="panel-subtitle">Disciplined Core Confluence Inspector</h3>
+                <form id="discipline-form" class="pro-form">
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label>Underlying Symbol</label>
+                      <div class="symbol-pills">
+                        <button type="button" class="pill-btn" data-sym="NIFTY">NIFTY</button>
+                        <button type="button" class="pill-btn" data-sym="RELIANCE">RELIANCE</button>
+                        <button type="button" class="pill-btn" data-sym="BTC">BTC</button>
+                        <button type="button" class="pill-btn" data-sym="ETH">ETH</button>
+                        <button type="button" class="pill-btn" data-sym="SOL">SOL</button>
+                      </div>
+                      <input type="text" id="inspect-symbol" value="NIFTY" required>
+                    </div>
+                    <div class="form-group">
+                      <label>Spot Valuation (₹)</label>
+                      <input type="number" id="inspect-price" value="24500" step="0.01" required>
+                    </div>
+                  </div>
+                  <button type="submit" class="btn btn-secondary">Run Core Validation Audit</button>
+                </form>
+                <div id="inspector-output" class="inspector-output hidden">
+                  <div class="audit-status" id="audit-badge">PASSED</div>
+                  <div class="audit-details" id="audit-details"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Backtest engine -->
+            <div id="pane-backtester" class="pane-view">
+              <div class="card-body">
+                <h3 class="panel-subtitle">Simulation Backtester</h3>
+                <p class="desc">Simulate historical cycles to backtest rulesets and win rate.</p>
+                <button id="btn-run-backtest" class="btn btn-primary">Run Simulation Backtester</button>
+                
+                <div id="backtest-results-container" class="backtest-results-pro hidden">
+                  <div class="metrics-row">
+                    <div class="m-card">
+                      <span class="m-lbl">Total Trades</span>
+                      <span class="m-val" id="bt-trades">-</span>
+                    </div>
+                    <div class="m-card">
+                      <span class="m-lbl">Win Rate</span>
+                      <span class="m-val" id="bt-winrate">-</span>
+                    </div>
+                    <div class="m-card">
+                      <span class="m-lbl">Net Profit</span>
+                      <span class="m-val success" id="bt-pnl">-</span>
+                    </div>
+                    <div class="m-card">
+                      <span class="m-lbl">Max Drawdown</span>
+                      <span class="m-val danger" id="bt-drawdown">-</span>
+                    </div>
+                  </div>
+                  <div class="backtest-log" id="bt-message"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Panel: Binance Order Ticket -->
+      <aside class="order-ticket-panel">
+        <div class="ticket-type-tabs">
+          <button class="dir-tab active" id="dir-long" data-dir="long">BUY / LONG</button>
+          <button class="dir-tab" id="dir-short" data-dir="short">SELL / SHORT</button>
+        </div>
+        <div class="ticket-body">
+          <form id="trade-form" class="pro-form">
+            <div class="form-group">
+              <label>Asset Symbol</label>
+              <div class="symbol-pills">
+                <button type="button" class="pill-btn" data-sym="NIFTY">NIFTY</button>
+                <button type="button" class="pill-btn" data-sym="RELIANCE">RELIANCE</button>
+                <button type="button" class="pill-btn" data-sym="BTC">BTC</button>
+                <button type="button" class="pill-btn" data-sym="ETH">ETH</button>
+                <button type="button" class="pill-btn" data-sym="SOL">SOL</button>
+              </div>
+              <input type="text" id="trade-symbol" value="NIFTY" required>
+            </div>
+            <div class="form-group">
+              <label>Price Type</label>
+              <input type="text" value="Market (Simulated)" disabled class="disabled-input">
+            </div>
+            <div class="form-group">
+              <label>Entry Price (₹)</label>
+              <input type="number" id="trade-entry" value="24500" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Stop Loss Trigger (₹)</label>
+              <input type="number" id="trade-sl" value="24400" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Take Profit Target (₹)</label>
+              <input type="number" id="trade-tp" value="24700" step="0.01" required>
+            </div>
+
+            <!-- Position Size / Margin Heat slider -->
+            <div class="margin-slider-group">
+              <div class="slider-headers">
+                <label>Allocation Risk</label>
+                <span id="slider-val">1% (Default)</span>
+              </div>
+              <input type="range" min="1" max="5" value="1" class="pro-range-slider" id="risk-slider">
+              <div class="slider-markers">
+                <span>1%</span>
+                <span>2%</span>
+                <span>3%</span>
+                <span>4%</span>
+                <span>5%</span>
+              </div>
+            </div>
+
+            <!-- Discipline Confluence settings -->
+            <div class="discipline-settings-group" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px; padding-bottom: 5px;">
+              <label style="margin-bottom: 6px; display: block;">Discipline Guards</label>
+              <div style="display: flex; flex-direction: column; gap: 8px;">
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: none; color: var(--text-secondary); cursor: pointer;">
+                  <input type="checkbox" id="chk-confluence" checked style="width: 13px; height: 13px; margin: 0; background: #12161a; border: 1px solid var(--border-color); cursor: pointer;">
+                  Confluence Guard
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: none; color: var(--text-secondary); cursor: pointer;">
+                  <input type="checkbox" id="chk-session" checked style="width: 13px; height: 13px; margin: 0; background: #12161a; border: 1px solid var(--border-color); cursor: pointer;">
+                  Session Timing Guard
+                </label>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-trade-action" id="btn-submit-order">BUY / LONG</button>
+          </form>
+          
+          <div id="trade-output" class="trade-output-pro hidden"></div>
+
+          <!-- Quick System trigger sweep -->
+          <div class="quick-sweep-action">
+            <button class="btn btn-secondary btn-block" id="btn-trigger-cycle">Trigger Orchestra Sweep</button>
+            <div id="cycle-quick-output" class="ob-sweep-logs hidden"></div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

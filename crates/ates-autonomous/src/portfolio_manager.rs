@@ -38,6 +38,8 @@ impl PortfolioManagerAgent {
     pub async fn update_position_pnl(&self, symbol: &str, current_price: f64) -> Result<f64, Box<dyn Error + Send + Sync>> {
         let mut portfolio = self.state.portfolio.write().await;
 
+        let mut pnl = 0.0;
+        let mut updated = false;
         for pos in &mut portfolio.open_positions {
             if pos.symbol == symbol {
                 pos.current_price = current_price;
@@ -48,10 +50,23 @@ impl PortfolioManagerAgent {
                 pos.unrealized_pnl_pct = if pos.entry_price > 0.0 {
                     pos.unrealized_pnl / (pos.entry_price * pos.quantity) * 100.0
                 } else { 0.0 };
-                return Ok(pos.unrealized_pnl);
+                pnl = pos.unrealized_pnl;
+                updated = true;
+                break;
             }
         }
-        Ok(0.0)
+
+        if updated {
+            let open_value: f64 = portfolio.open_positions.iter()
+                .map(|p| match p.direction {
+                    ates_core::TradeDirection::Long => p.quantity * p.current_price,
+                    ates_core::TradeDirection::Short => (p.quantity * p.entry_price) + p.unrealized_pnl,
+                })
+                .sum();
+            portfolio.total_equity = portfolio.cash_balance + open_value;
+        }
+
+        Ok(pnl)
     }
 
     pub async fn add_position(&self, signal: &TradeSignal) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -83,6 +98,14 @@ impl PortfolioManagerAgent {
         portfolio.total_trades_today += 1;
         portfolio.last_trade_time = Some(Utc::now());
 
+        let open_value: f64 = portfolio.open_positions.iter()
+            .map(|p| match p.direction {
+                ates_core::TradeDirection::Long => p.quantity * p.current_price,
+                ates_core::TradeDirection::Short => (p.quantity * p.entry_price) + p.unrealized_pnl,
+            })
+            .sum();
+        portfolio.total_equity = portfolio.cash_balance + open_value;
+
         println!(
             "[PortfolioManager] Added position: {} {} {:.0} shares @ {:.2}",
             signal.symbol,
@@ -104,8 +127,7 @@ impl PortfolioManagerAgent {
                 ates_core::TradeDirection::Short => (pos.entry_price - exit_price) * pos.quantity,
             };
 
-            let position_value = pos.quantity * exit_price;
-            portfolio.cash_balance += position_value;
+            portfolio.cash_balance += (pos.quantity * pos.entry_price) + realized_pnl;
             portfolio.daily_pnl += realized_pnl;
 
             if realized_pnl > 0.0 {
@@ -117,7 +139,10 @@ impl PortfolioManagerAgent {
             }
 
             let open_value: f64 = portfolio.open_positions.iter()
-                .map(|p| p.quantity * p.current_price)
+                .map(|p| match p.direction {
+                    ates_core::TradeDirection::Long => p.quantity * p.current_price,
+                    ates_core::TradeDirection::Short => (p.quantity * p.entry_price) + p.unrealized_pnl,
+                })
                 .sum();
             portfolio.total_equity = portfolio.cash_balance + open_value;
 
@@ -150,5 +175,84 @@ impl Agent for PortfolioManagerAgent {
     async fn run(&self, _input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
         let _ = self.assess_portfolio().await;
         Ok(AgentOutput::Done)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ates_core::{Config, DisciplineRules, MemoryStore, TradeDirection};
+    use crate::types::TradeSignal;
+    use chrono::Utc;
+    use std::fs;
+
+    #[tokio::test]
+    async fn test_short_position_accounting() {
+        let db_path = "test_portfolio_memory.redb";
+        let _ = fs::remove_file(db_path);
+
+        let memory = MemoryStore::new(db_path).unwrap();
+        let config = Config::default();
+        let rules = DisciplineRules::default();
+        let state = SharedState::new(memory, rules, config);
+        
+        let pm = PortfolioManagerAgent::new(state.clone());
+
+        // Initial state
+        {
+            let portfolio = state.portfolio.read().await;
+            assert_eq!(portfolio.cash_balance, 100_000.0);
+            assert_eq!(portfolio.total_equity, 100_000.0);
+        }
+
+        // Add short position of NIFTY
+        let signal = TradeSignal {
+            symbol: "NIFTY".to_string(),
+            direction: TradeDirection::Short,
+            entry_price: 100.0,
+            stop_loss: 110.0,
+            take_profit: 80.0,
+            position_size: 10.0,
+            confidence_score: 0.8,
+            confluence_score: 0.8,
+            risk_reward_ratio: 2.0,
+            reasoning: "Test short".to_string(),
+            timestamp: Utc::now(),
+            session_valid: true,
+            risk_check_passed: true,
+        };
+
+        pm.add_position(&signal).await.unwrap();
+
+        // After entry
+        {
+            let portfolio = state.portfolio.read().await;
+            assert_eq!(portfolio.cash_balance, 99_000.0);
+            assert_eq!(portfolio.total_equity, 100_000.0);
+            assert_eq!(portfolio.open_positions.len(), 1);
+        }
+
+        // Move price in favor of short (to 80)
+        pm.update_position_pnl("NIFTY", 80.0).await.unwrap();
+
+        // Equity should increase as short is in profit
+        {
+            let portfolio = state.portfolio.read().await;
+            assert_eq!(portfolio.total_equity, 100_200.0);
+        }
+
+        // Close short position at 80
+        let pnl = pm.close_position("NIFTY", 80.0).await.unwrap();
+        assert_eq!(pnl, 200.0);
+
+        // After close, cash and equity should be updated correctly
+        {
+            let portfolio = state.portfolio.read().await;
+            assert_eq!(portfolio.cash_balance, 100_200.0);
+            assert_eq!(portfolio.total_equity, 100_200.0);
+            assert!(portfolio.open_positions.is_empty());
+        }
+
+        let _ = fs::remove_file(db_path);
     }
 }

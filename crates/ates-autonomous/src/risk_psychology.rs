@@ -60,15 +60,14 @@ impl RiskPsychologyAgent {
         }
 
 
-        let recommendation = if !portfolio.trading_enabled {
+        let recommendation = if !portfolio.trading_enabled
+            || daily_dd >= rules.max_daily_drawdown
+            || portfolio.consecutive_losses >= rules.max_consecutive_losses
+        {
             RiskRecommendation::Halt
-        } else if daily_dd >= rules.max_daily_drawdown {
-            RiskRecommendation::Halt
-        } else if portfolio.consecutive_losses >= rules.max_consecutive_losses {
-            RiskRecommendation::Halt
-        } else if daily_dd >= rules.max_daily_drawdown * 0.7 {
-            RiskRecommendation::ReduceSize
-        } else if portfolio_heat > 0.15 {
+        } else if daily_dd >= rules.max_daily_drawdown * 0.7
+            || portfolio_heat > 0.15
+        {
             RiskRecommendation::ReduceSize
         } else {
             RiskRecommendation::Proceed

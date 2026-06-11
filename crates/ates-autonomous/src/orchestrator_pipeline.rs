@@ -62,8 +62,7 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
     }
 
     pub async fn run_health_check(&self) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
-        let mut reports = Vec::new();
-        reports.push("System health: OK (simplified)".to_string());
+        let reports = vec!["System health: OK (simplified)".to_string()];
         Ok(reports)
     }
 

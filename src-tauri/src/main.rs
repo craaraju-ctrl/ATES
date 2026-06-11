@@ -1,6 +1,5 @@
 use tauri::State;
 use tokio::sync::Mutex;
-use chrono;
 use ates_core::{
     Config, DisciplineRules, ExecutionEngine, MemoryStore,
     validate_trade_setup, TradeSetup, TradeDirection,
@@ -166,6 +165,43 @@ async fn run_backtest(state: State<'_, Mutex<AppState>>) -> Result<String, Strin
 }
 
 #[tauri::command]
+async fn fetch_live_stock_price(symbol: String) -> Result<f64, String> {
+    let symbol_upper = symbol.to_uppercase();
+    let yahoo_symbol = match symbol_upper.as_str() {
+        "NIFTY" => "^NSEI",
+        "RELIANCE" => "RELIANCE.NS",
+        other => other,
+    };
+    let client = reqwest::Client::new();
+    let url = format!("https://query1.finance.yahoo.com/v8/finance/chart/{}?interval=1m&range=1d", yahoo_symbol);
+    let resp: serde_json::Value = client.get(&url)
+        .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?
+        .json()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let price = resp["chart"]["result"][0]["meta"]["regularMarketPrice"]
+        .as_f64()
+        .ok_or_else(|| "regularMarketPrice field missing".to_string())?;
+    Ok(price)
+}
+
+#[tauri::command]
+async fn update_rules(
+    use_confluence: bool,
+    respect_session_timing: bool,
+    state: State<'_, Mutex<AppState>>,
+) -> Result<String, String> {
+    let mut app_state = state.lock().await;
+    app_state.rules.use_confluence = use_confluence;
+    app_state.rules.respect_session_timing = respect_session_timing;
+    Ok("Rules updated successfully".to_string())
+}
+
+#[tauri::command]
 async fn trigger_orchestra_cycle(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
     let _app_state = state.lock().await;
 
@@ -193,7 +229,9 @@ async fn main() {
             execute_trade,
             check_discipline,
             run_backtest,
-            trigger_orchestra_cycle
+            trigger_orchestra_cycle,
+            fetch_live_stock_price,
+            update_rules
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -7,12 +7,12 @@
     "beforeDevCommand": "",
     "beforeBuildCommand": "",
     "devUrl": null,
-    "frontendDist": null
+    "frontendDist": "./frontend"
   },
   "app": {
     "windows": [
       {
-        "title": "ATES - Agentic Trading Execution System",
+        "title": "ATES - Autonomous Trading Execution System",
         "width": 1200,
         "height": 800,
         "resizable": true,

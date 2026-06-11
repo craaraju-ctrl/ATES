@@ -17,7 +17,7 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
             if red_ok.is_ok() { "OK" } else { "FAIL" },
             if over_ok.is_ok() { "OK" } else { "FAIL" });
 
-        Ok(true)
+        Ok(session_ok.is_ok() && drawdown_ok.is_ok() && red_ok.is_ok() && over_ok.is_ok())
     }
 
     pub async fn phase2_market_analysis(&self, symbol: &str, price: f64) -> Result<(f64, PivotLevels), Box<dyn Error + Send + Sync>> {

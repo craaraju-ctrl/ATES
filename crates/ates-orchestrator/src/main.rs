@@ -1,139 +1,145 @@
-use ates_core::Agent;
-use ates_agents::OutcomeLoggerAgent;
-use tokio::sync::mpsc;
-use tokio::task::JoinSet;
-use ates_core::messages::{AgentMessage, LLMRequest};
-use ates_core::role::AgentRole;
-use ates_core::kronos_client::{KronosClient, KronosForecastRequest, OhlcvBar};
-use ates_core::config::Config;
+use ates_autonomous::state::initialize_autonomous_system;
+use ates_core::{TradeDirection, Agent};
+use std::time::Duration;
+use tokio::time::sleep;
+use std::collections::HashMap;
 
-/// Main Orchestrator for ATES
-/// Coordinates Main Agents (LLM-capable) and Sub-Agents (deterministic)
-/// Now includes Kronos Forecasting Service integration
+// Helper to fetch live crypto prices from Binance API
+async fn fetch_binance_price(client: &reqwest::Client, symbol: &str) -> Result<f64, Box<dyn std::error::Error + Send + Sync>> {
+    let url = format!("https://api.binance.com/api/v3/ticker/price?symbol={}USDT", symbol);
+    let resp: serde_json::Value = client.get(&url)
+        .header("User-Agent", "Mozilla/5.0")
+        .timeout(Duration::from_secs(3))
+        .send()
+        .await?
+        .json()
+        .await?;
+    let price_str = resp["price"].as_str().ok_or("price field missing")?;
+    let price: f64 = price_str.parse()?;
+    Ok(price)
+}
+
+// Helper to fetch live stock prices from Yahoo Finance API
+async fn fetch_yahoo_price(client: &reqwest::Client, symbol: &str) -> Result<f64, Box<dyn std::error::Error + Send + Sync>> {
+    let yahoo_symbol = match symbol {
+        "NIFTY" => "^NSEI",
+        "RELIANCE" => "RELIANCE.NS",
+        other => other,
+    };
+    let url = format!("https://query1.finance.yahoo.com/v8/finance/chart/{}?interval=1m&range=1d", yahoo_symbol);
+    let resp: serde_json::Value = client.get(&url)
+        .header("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)")
+        .timeout(Duration::from_secs(3))
+        .send()
+        .await?
+        .json()
+        .await?;
+    let price = resp["chart"]["result"][0]["meta"]["regularMarketPrice"]
+        .as_f64()
+        .ok_or("regularMarketPrice field missing")?;
+    Ok(price)
+}
 
 #[tokio::main]
-async fn main() {
-    println!("=== ATES Orchestrator v0.16 — Agent & Sub-Agent Orchestra + Kronos Integration ===");
+async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("=== ATES Autonomous Orchestrator (Live 24x7 Multi-Market Feed) ===");
 
-    let config = Config::default();
-    let kronos_client = KronosClient::new(config.kronos_service_url.clone());
+    // Initialize the real autonomous state
+    let orchestrator = initialize_autonomous_system().await?;
+    let client = reqwest::Client::new();
 
-    // Create message channels for agent communication
-    let (tx_main, mut rx_main) = mpsc::channel::<AgentMessage>(100);
-    let (_tx_sub, mut rx_sub) = mpsc::channel::<AgentMessage>(100);
+    // In-memory fallback tracking for 24x7 continuous uptime
+    let mut current_prices = HashMap::new();
+    current_prices.insert("NIFTY".to_string(), 24500.0);
+    current_prices.insert("RELIANCE".to_string(), 2950.0);
+    current_prices.insert("BTC".to_string(), 67500.0);
+    current_prices.insert("ETH".to_string(), 3500.0);
+    current_prices.insert("SOL".to_string(), 155.0);
 
-    let mut set = JoinSet::new();
+    let assets = vec!["NIFTY", "RELIANCE", "BTC", "ETH", "SOL"];
+    println!("[Orchestrator] Active and ready. Running pipeline loops for: {:?}", assets);
 
-    println!("[Orchestrator] Starting coordinated message passing between agents...");
+    loop {
+        for symbol in &assets {
+            let is_crypto = match *symbol {
+                "BTC" | "ETH" | "SOL" => true,
+                _ => false,
+            };
 
-    let tx_main_clone = tx_main.clone();
-    let kronos_client_clone = kronos_client.clone(); // Note: In real impl, wrap in Arc if needed
+            // Attempt to pull real-time ticks
+            let old_price = *current_prices.get(*symbol).unwrap_or(&20000.0);
+            let price;
+            let mut source = "Live Stream API";
 
-    // Market Intelligence sends requests to the system
-    set.spawn(async move {
-        println!("[MarketIntelligence] Requesting pivot & confluence data from Sub-Agents");
-        let obs = AgentMessage::Observation {
-            agent: "MarketIntelligence".to_string(),
-            content: "Please compute pivots and confluence for NIFTY".to_string(),
-        };
-        let _ = tx_main_clone.send(obs).await;
+            let fetch_result = if is_crypto {
+                fetch_binance_price(&client, symbol).await
+            } else {
+                fetch_yahoo_price(&client, symbol).await
+            };
 
-        let llm_req = LLMRequest {
-            request_id: "mi-001".to_string(),
-            agent_role: AgentRole::MarketIntelligence,
-            prompt: "Analyze current NIFTY market regime and key levels".to_string(),
-            context: serde_json::json!({"symbol": "NIFTY"}),
-            max_tokens: 300,
-            temperature: 0.25,
-        };
-        let _ = tx_main_clone.send(AgentMessage::LLMRequest(llm_req)).await;
-    });
-
-    // === NEW: Kronos Forecasting Demo ===
-    set.spawn(async move {
-        println!("[KronosIntegration] Demonstrating forecast request to Kronos Service...");
-
-        // Sample NIFTY-like OHLCV data (last few candles)
-        let sample_ohlcv = vec![
-            OhlcvBar {
-                timestamp: "2025-06-11T09:15:00Z".to_string(),
-                open: 24500.0,
-                high: 24550.0,
-                low: 24480.0,
-                close: 24520.0,
-                volume: 125000.0,
-            },
-            OhlcvBar {
-                timestamp: "2025-06-11T09:20:00Z".to_string(),
-                open: 24520.0,
-                high: 24580.0,
-                low: 24510.0,
-                close: 24565.0,
-                volume: 98000.0,
-            },
-        ];
-
-        let forecast_req = KronosForecastRequest {
-            symbol: "NIFTY".to_string(),
-            ohlcv: sample_ohlcv,
-            pred_len: 5,
-            temperature: 0.8,
-            top_p: 0.9,
-            sample_count: 1,
-        };
-
-        match kronos_client_clone.forecast(forecast_req).await {
-            Ok(resp) => {
-                println!("[KronosIntegration] Forecast received for {}: {} candles", resp.symbol, resp.forecasts.len());
-                println!("[KronosIntegration] Message: {}", resp.message);
-                // TODO: Feed resp.forecasts into disciplined_core or confluence scoring
+            match fetch_result {
+                Ok(p) => {
+                    price = p;
+                    current_prices.insert(symbol.to_string(), price);
+                }
+                Err(e) => {
+                    // Failover drift logic for offline/off-market hours
+                    let micros = chrono::Utc::now().timestamp_micros();
+                    let random_pct = ((micros % 2000) as f64 - 1000.0) / 1000000.0; // small drift
+                    price = old_price * (1.0 + random_pct);
+                    current_prices.insert(symbol.to_string(), price);
+                    source = "Fallback Drift (API Timeout / Market Closed)";
+                    eprintln!("[Feed Warning] Price fetch error for {}: {}. Drifted to: {}", symbol, e, price);
+                }
             }
-            Err(e) => {
-                println!("[KronosIntegration] Forecast call failed (is Kronos service running?): {}", e);
-            }
-        }
-    });
 
-    set.spawn(async move {
-        println!("[PivotCalculator] Sub-Agent ready to respond to pivot requests");
-    });
+            let change = price - old_price;
+            let direction = if change >= 0.0 { TradeDirection::Long } else { TradeDirection::Short };
 
-    set.spawn(async move {
-        println!("[ConfluenceScorer] Sub-Agent ready to compute confluence");
-    });
+            // Determine parameters
+            let entry = price;
+            let sl_pct = if is_crypto { 0.01 } else { 0.005 }; // 1.0% crypto vs 0.5% stocks
+            let tp_pct = if is_crypto { 0.025 } else { 0.015 }; // 2.5% crypto vs 1.5% stocks
 
-    let outcome_logger = OutcomeLoggerAgent;
-    set.spawn(async move {
-        let _ = outcome_logger.run(None).await;
-    });
+            let stop = if direction == TradeDirection::Long { entry * (1.0 - sl_pct) } else { entry * (1.0 + sl_pct) };
+            let target = if direction == TradeDirection::Long { entry * (1.0 + tp_pct) } else { entry * (1.0 - tp_pct) };
 
-    let router_handle = tokio::spawn(async move {
-        println!("[MessageRouter] Central router started");
+            println!("\n--------------------------------------------------");
+            println!(
+                "[Tick Feed] {} @ {} {:.2} ({})",
+                symbol,
+                if is_crypto { "$" } else { "₹" },
+                price,
+                source
+            );
 
-        loop {
-            tokio::select! {
-                Some(msg) = rx_main.recv() => {
-                    match msg {
-                        AgentMessage::LLMRequest(req) => {
-                            println!("[Router] → LLMRequest from {}: {}", req.agent_role.description(), req.prompt);
-                        }
-                        AgentMessage::Observation { agent, content } => {
-                            println!("[Router] → Observation from {}: {}", agent, content);
-                        }
-                        _ => {}
+            // Execute core agent decision engines
+            match orchestrator.run_full_pipeline(symbol, direction, entry, stop, target).await {
+                Ok(summary) => {
+                    if summary.executed {
+                        println!("[Orchestrator] Setup PASSED Confluences. Trade executed! Reason: {}", summary.reason);
+                    } else {
+                        println!("[Orchestrator] Setup REJECTED or Paper conditions not met. Reason: {}", summary.reason);
                     }
                 }
-                Some(msg) = rx_sub.recv() => {
-                    println!("[Router] ← Message from Sub-Agent: {:?}", msg);
+                Err(e) => {
+                    println!("[Orchestrator] Pipeline process error: {}", e);
                 }
-                else => break,
             }
         }
-    });
 
-    let _ = router_handle;
+        // Check active positions and trigger automated Stop Loss / Take Profit exits
+        let _ = orchestrator.execution.run(None).await;
 
-    tokio::time::sleep(tokio::time::Duration::from_secs(6)).await;
+        // Print active margin balance summary
+        {
+            let portfolio = orchestrator.state.portfolio.read().await;
+            println!(
+                "[Portfolio Status] Equity: {:.2} | Margin Cash: {:.2} | Positions: {} | Today's P&L: {:.2}",
+                portfolio.total_equity, portfolio.cash_balance, portfolio.open_positions.len(), portfolio.daily_pnl
+            );
+        }
 
-    println!("[Orchestrator] Agent orchestra cycle completed. Kronos integration active.");
+        sleep(Duration::from_secs(5)).await;
+    }
 }

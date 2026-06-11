@@ -1,6 +1,6 @@
 use std::error::Error;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LlmExecutor {
     // Placeholder for Ollama / LLM client
 }

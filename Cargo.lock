@@ -150,7 +150,10 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "ates-agents",
+ "ates-autonomous",
  "ates-core",
+ "chrono",
+ "reqwest 0.11.27",
  "serde_json",
  "tokio",
 ]
@@ -164,6 +167,7 @@ dependencies = [
  "chrono",
  "env_logger",
  "log",
+ "reqwest 0.11.27",
  "serde",
  "serde_json",
  "tauri",

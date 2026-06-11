@@ -32,10 +32,7 @@ impl MemoryStore {
     pub fn get_decision(&self, key: &str) -> Result<Option<String>, redb::Error> {
         let read_txn = self.db.begin_read()?;
         let table = read_txn.open_table(DECISIONS_TABLE)?;
-        let result = match table.get(key)? {
-            Some(value) => Some(value.value().to_string()),
-            None => None,
-        };
+        let result = table.get(key)?.map(|value| value.value().to_string());
         Ok(result)
     }
 }

@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use std::error::Error;
 use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
 
+#[derive(Default)]
 pub struct MarketIntelligenceAgent;
 
 impl MarketIntelligenceAgent {

@@ -29,18 +29,19 @@ impl RedFolderCheckerAgent {
     }
 
     fn is_red_folder_today(&self) -> bool {
-        let today = Utc::now().format("%Y-%m-%d").to_string();
+        let ist_now = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(5 * 3600 + 1800).unwrap());
+        let today = ist_now.format("%Y-%m-%d").to_string();
         self.red_folder_dates.contains(&today)
     }
 
     /// Check if any red folder event is within the next N days
     fn upcoming_red_folder(&self, days: i64) -> Vec<String> {
-        let now = Utc::now();
+        let ist_now = Utc::now().with_timezone(&chrono::FixedOffset::east_opt(5 * 3600 + 1800).unwrap());
         self.red_folder_dates.iter()
             .filter(|date| {
                 if let Ok(event_date) = chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d") {
                     let event_datetime = event_date.and_hms_opt(0, 0, 0).unwrap();
-                    let diff = event_datetime.signed_duration_since(now.naive_utc()).num_days();
+                    let diff = event_datetime.signed_duration_since(ist_now.naive_local()).num_days();
                     diff > 0 && diff <= days
                 } else {
                     false

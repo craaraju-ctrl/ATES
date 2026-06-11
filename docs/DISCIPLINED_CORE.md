@@ -22,15 +22,16 @@ Must consider multiple factors before taking a trade:
 
 ### 3. Risk Management (Hard Rules)
 - Maximum risk per trade: 1% of account
-- Maximum daily drawdown: 3%
+- Maximum daily drawdown: 3% (drawdown limit triggers halt state)
 - Position sizing based on stop distance
 - No trading if daily loss limit is hit
+- Dynamic accounting support for both **LONG and SHORT** positions with correct unrealized P&L, cash balance, and equity contribution calculations
 
 ### 4. Psychology & Discipline
-- Red Folder / High-impact news filter
+- Red Folder / High-impact news filter (synchronized to Indian Standard Time (IST) offset)
 - Reduce position size after consecutive losses
-- Avoid overtrading
-- Respect session timing
+- Avoid overtrading (limit enforced via consensus of sub-agents)
+- Respect session timing (enforced via Session Timer sub-agent)
 
 ### 5. Entry Criteria
 A trade must pass structured checks:

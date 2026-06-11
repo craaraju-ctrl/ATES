@@ -69,6 +69,8 @@ async def get_forecast(request: ForecastRequest):
             sample_count=request.sample_count
         )
 
+        pred_df.index = pred_df.index.strftime('%Y-%m-%dT%H:%M:%SZ')
+        pred_df.index.name = 'timestamp'
         forecasts = pred_df.reset_index().to_dict(orient='records')
 
         return ForecastResponse(

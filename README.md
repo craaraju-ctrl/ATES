@@ -1,4 +1,4 @@
-# ATES — Agentic Trading Exception System
+# ATES — Autonomous Trading Execution System
 
 **Advanced Rust Multi-Agent Trading Platform**
 
@@ -12,6 +12,9 @@ ATES is a **production-grade**, Rust-first hierarchical multi-agent trading syst
 
 ## Key Features
 - Comprehensive **Disciplined Core** (pivots, confluence scoring, risk limits, red-folder handling)
+- Robust **Discipline Check Consensus** requiring consensus across all sub-agents (session, drawdown, red-folder, and overtrading checks)
+- **Dynamic Short Selling Accounting** with correct realized P&L, cash refunds, and equity contributions under simulation
+- **Timezone-Aware Operations** syncing economic event checks to Indian Standard Time (IST)
 - Async Tokio-based orchestration
 - Embedded memory (`redb`)
 - LLM Executor (Ollama integration with fallback)

@@ -12,6 +12,7 @@ tokio = { version = "1", features = ["full"] }
 chrono = { version = "0.4", features = ["serde"] }
 log = "0.4"
 env_logger = "0.11"
+reqwest = { version = "0.11", features = ["json"] }
 
 # ATES Core + Agents integration
 ates-core = { path = "../crates/ates-core" }
