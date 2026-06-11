@@ -1,3 +1,7 @@
+// orchestrator_struct.rs
+// AutonomousOrchestrator struct definition + new() + record_result()
+// Copied from original document
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::state::SharedState;
