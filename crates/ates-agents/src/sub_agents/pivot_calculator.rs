@@ -17,7 +17,14 @@ impl Agent for PivotCalculatorAgent {
 
     async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         println!("[{}] Calculating pivot points using Disciplined Core...", self.name());
-        // TODO: Call calculate_pivot_points from disciplined_core and return results via messages
+
+        // Example calculation (in real flow this would come from market data)
+        let example_pivots = ates_core::calculate_pivot_points(24500.0, 24200.0, 24350.0, ates_core::PivotMethod::Classic);
+        println!(
+            "   Pivot: {:.2} | R1: {:.2} | S1: {:.2}",
+            example_pivots.pivot, example_pivots.r1, example_pivots.s1
+        );
+
         Ok(())
     }
 }
