@@ -1,0 +1,28 @@
+[package]
+name = "ates-ui"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+log = "0.4"
+env_logger = "0.11"
+
+# Leptos integration (for future full reactive UI)
+leptos = { version = "0.7", features = ["csr"] }
+
+# ATES Core + Agents integration
+ates-core = { path = "../crates/ates-core" }
+ates-agents = { path = "../crates/ates-agents" }
+
+[features]
+default = ["custom-protocol"]
+custom-protocol = ["tauri/custom-protocol"]
+
+[[bin]]
+name = "ates-ui"
+path = "src/main.rs"
