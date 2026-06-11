@@ -15,6 +15,7 @@ use ates_agents::{
     ReflectorAgent,
     RiskCalculatorAgent,
     PivotCalculatorAgent,
+    OutcomeLoggerAgent,
 };
 
 /// Main Orchestrator for ATES
@@ -35,7 +36,7 @@ async fn main() {
 
     println!("[Orchestrator] Starting full agent orchestra...");
     println!("[Orchestrator] Main Agents: MarketIntelligence, RiskPsychology, Reflector");
-    println!("[Orchestrator] Sub-Agents: RiskCalculator, PivotCalculator");
+    println!("[Orchestrator] Sub-Agents: RiskCalculator, PivotCalculator, OutcomeLogger");
 
     // Create message channels for agent communication
     let (tx_main, mut rx_main) = mpsc::channel::<AgentMessage>(100);
@@ -43,35 +44,21 @@ async fn main() {
 
     let mut set = JoinSet::new();
 
-    // Spawn real Main Agents
+    // Spawn and run real agents (demonstration of coordination)
+    println!("[Orchestrator] Running coordinated agent cycle...");
+
     let market_intel = MarketIntelligenceAgent;
+    let _ = market_intel.run().await;
+
     let risk_psych = RiskPsychologyAgent;
-    let reflector = ReflectorAgent;
+    let _ = risk_psych.run().await;
 
-    set.spawn(async move {
-        println!("[MarketIntelligence] Main Agent started");
-        // Would handle market analysis and possibly request LLM
-    });
-
-    set.spawn(async move {
-        println!("[RiskPsychology] Main Agent started");
-    });
-
-    set.spawn(async move {
-        println!("[Reflector] Main Agent started");
-    });
-
-    // Spawn real Sub-Agents
-    let risk_calc = RiskCalculatorAgent;
     let pivot_calc = PivotCalculatorAgent;
+    let _ = pivot_calc.run().await;
 
-    set.spawn(async move {
-        println!("[RiskCalculator] Sub-Agent started (deterministic)");
-    });
-
-    set.spawn(async move {
-        println!("[PivotCalculator] Sub-Agent started (deterministic)");
-    });
+    // Example: Use MemoryStore via OutcomeLogger
+    let outcome_logger = OutcomeLoggerAgent;
+    let _ = outcome_logger.run().await;
 
     // Central Message Router (the real "orchestra conductor")
     let router_handle = tokio::spawn(async move {
