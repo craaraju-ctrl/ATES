@@ -24,7 +24,7 @@ pub use disciplined_core::{
     get_discipline_summary,
 };
 pub use backtest::{TradeSetup, TradeDirection, Backtester, BacktestResult};
-pub use agent::{Agent, AgentTier};
+pub use agent::{Agent, AgentTier, AgentInput, AgentOutput};
 pub use memory::MemoryStore;
 pub use messages::{AgentMessage, LLMRequest, LLMResponse};
 pub use role::AgentRole;

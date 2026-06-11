@@ -27,4 +27,14 @@ pub enum AgentMessage {
         agent: String,
         content: String,
     },
+    /// Request to dispatch work to a specific Sub-Agent.
+    SubAgentTask {
+        target: String,
+        input: crate::agent::AgentInput,
+    },
+    /// Result returned by a Sub-Agent after processing a task.
+    SubAgentResult {
+        source: String,
+        output: crate::agent::AgentOutput,
+    },
 }
