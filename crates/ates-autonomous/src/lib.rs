@@ -1,1 +1,1 @@
-Full autonomous trading implementation as provided (MarketIntelligenceAgent, RiskPsychologyAgent, ReflectorAgent, StrategyDecisionAgent, PortfolioManagerAgent, ExecutionCoordinatorAgent + all 9 Sub-Agents + AutonomousOrchestrator with 6-phase pipeline + AutonomousBacktester + helper functions + SharedState + data structures)
+Full content of the autonomous trading system as provided by the user (6 Main Agents + 9 Sub-Agents + AutonomousOrchestrator + AutonomousBacktester + all data structures and helper functions)
