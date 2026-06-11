@@ -51,5 +51,5 @@ pub struct BacktestResult {
     pub total_pnl: f64,
     pub max_drawdown: f64,
     pub sharpe_ratio: f64,
-    pub decisions: Vec<crate::memory::DecisionRecord>,
+    pub decisions: Vec<String>, // placeholder
 }
