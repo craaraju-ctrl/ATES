@@ -12,9 +12,6 @@ tokio = { version = "1", features = ["full"] }
 log = "0.4"
 env_logger = "0.11"
 
-# Leptos integration (for future full reactive UI)
-leptos = { version = "0.7", features = ["csr"] }
-
 # ATES Core + Agents integration
 ates-core = { path = "../crates/ates-core" }
 ates-agents = { path = "../crates/ates-agents" }
