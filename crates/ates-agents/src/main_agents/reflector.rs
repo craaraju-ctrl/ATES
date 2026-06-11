@@ -1,23 +1,15 @@
 use async_trait::async_trait;
 use std::error::Error;
-
-use ates_core::{Agent, AgentTier};
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
 
 pub struct ReflectorAgent;
 
 #[async_trait]
 impl Agent for ReflectorAgent {
-    fn name(&self) -> &str {
-        "ReflectorAgent"
-    }
-
-    fn tier(&self) -> AgentTier {
-        AgentTier::Main
-    }
-
-    async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        println!("[{}] Reviewing past decisions, outcomes, and learning patterns from MemoryStore...", self.name());
-        // TODO: Query MemoryStore for DecisionRecord and improve future decisions
-        Ok(())
+    fn name(&self) -> &str { "ReflectorAgent" }
+    fn tier(&self) -> AgentTier { AgentTier::Main }
+    async fn run(&self, _input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
+        println!("[{}] Reflecting on past decisions...", self.name());
+        Ok(AgentOutput::NoOutput)
     }
 }

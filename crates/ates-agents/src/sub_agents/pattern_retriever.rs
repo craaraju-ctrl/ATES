@@ -1,23 +1,15 @@
 use async_trait::async_trait;
 use std::error::Error;
-
-use ates_core::{Agent, AgentTier};
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
 
 pub struct PatternRetrieverAgent;
 
 #[async_trait]
 impl Agent for PatternRetrieverAgent {
-    fn name(&self) -> &str {
-        "PatternRetrieverAgent"
-    }
-
-    fn tier(&self) -> AgentTier {
-        AgentTier::Sub
-    }
-
-    async fn run(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        println!("[{}] Retrieving historical patterns and similar past setups from MemoryStore...", self.name());
-        // TODO: Query MemoryStore for similar DecisionRecords and return relevant patterns
-        Ok(())
+    fn name(&self) -> &str { "PatternRetrieverAgent" }
+    fn tier(&self) -> AgentTier { AgentTier::Sub }
+    async fn run(&self, _input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
+        println!("[{}] Retrieving patterns...", self.name());
+        Ok(AgentOutput::NoOutput)
     }
 }
