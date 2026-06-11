@@ -2,7 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use tauri::{Manager, State};
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 use ates_core::{
     Config, DisciplineRules, ExecutionEngine, MemoryStore,
     validate_trade_setup, TradeSetup, TradeDirection,
@@ -50,7 +50,7 @@ async fn execute_trade(
     take_profit: f64,
     state: State<'_, Mutex<AppState>>,
 ) -> Result<String, String> {
-    let mut app_state = state.lock().unwrap();
+    let mut app_state = state.lock().await;
 
     let direction = match direction_str.to_lowercase().as_str() {
         "long" | "buy" => TradeDirection::Long,
@@ -174,7 +174,7 @@ fn run_backtest(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
 
 #[tauri::command]
 async fn trigger_orchestra_cycle(state: State<'_, Mutex<AppState>>) -> Result<String, String> {
-    let app_state = state.lock().unwrap();
+    let app_state = state.lock().await;
 
     println!("[Tauri] === FULL ORCHESTRA CYCLE TRIGGERED FROM UI ===");
 
