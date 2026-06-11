@@ -1,1 +1,24 @@
-The complete autonomous trading implementation provided earlier (full 6 Main Agents + 9 Sub-Agents + AutonomousOrchestrator + all data structures, SharedState, helper functions, and pipeline logic)
+pub mod types;
+pub mod state;
+pub mod helpers;
+
+pub mod market_intelligence;
+pub mod risk_psychology;
+pub mod reflector;
+pub mod strategy_decision;
+pub mod portfolio_manager;
+pub mod execution_coordinator;
+
+pub mod risk_calculator;
+pub mod pivot_calculator;
+pub mod confluence_scorer;
+
+pub mod orchestrator;
+
+pub use state::initialize_autonomous_system;
+pub use orchestrator::AutonomousOrchestrator;
+
+pub async fn main_autonomous() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    println!("ATES Autonomous System Initialized");
+    Ok(())
+}
