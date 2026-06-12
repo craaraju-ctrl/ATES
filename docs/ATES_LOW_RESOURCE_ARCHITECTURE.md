@@ -36,7 +36,7 @@ quadrantChart
 pie title ATES Memory Budget — 8GB RAM
     "Rust Runtime + Tokio" : 800
     "Disciplined Core + Agents" : 600
-    "redb Memory Store" : 400
+    "redb + SQLite Store" : 400
     "Kronos Service (Python)" : 1200
     "Ollama LLM (ministral-3)" : 3000
     "Tauri UI" : 500
@@ -54,7 +54,7 @@ pie title ATES Memory Budget — 8GB RAM
 | Disciplined Core + Agents | ~0.6 GB | 7.5% | 🔴 Core |
 | Tauri UI | ~0.5 GB | 6.3% | 🟡 Important |
 | Vector Memory (LanceDB) | ~0.4 GB | 5.0% | 🟡 Important |
-| redb Memory Store | ~0.4 GB | 5.0% | 🟢 Efficient |
+| redb + SQLite Store | ~0.4 GB | 5.0% | 🟢 Efficient (SQLite WAL mode) |
 | Price Data Cache | ~0.3 GB | 3.8% | 🟢 Efficient |
 | **Total** | **~7.3 GB** | **91.3%** | **✅ 0.7 GB Headroom** |
 
@@ -72,7 +72,7 @@ flowchart TB
     subgraph "Medium Components [Rust Runtime]"
         TOKIO[Tokio Runtime\n~0.8GB]
         AGENTS[Agent System\n~0.6GB]
-        MEMORY[redb + LanceDB\n~0.8GB]
+        MEMORY[redb + SQLite + LanceDB\n~0.8GB]
     end
 
     subgraph "Light Components [UI + Cache]"
@@ -183,7 +183,8 @@ flowchart LR
     end
     
     subgraph "Memory Tier 2 — Embedded DB [Persistent, Medium]"
-        REDB[redb Database\nKV Store\n~400 MB]
+        REDB[redb Database\nKV Store\n~200 MB]
+        SQLITE[SQLite Database\nWAL mode\n~200 MB]
         VEC[LanceDB\nVector Store\n~400 MB]
     end
     
@@ -193,7 +194,7 @@ flowchart LR
     end
 
     CACHE -->|Periodic flush| REDB
-    STATE -->|Decision storage| REDB
+    STATE -->|Decision storage| SQLITE
     STATE -->|Episode embedding| VEC
     REDB -->|Export| EXPORT
     STATE -->|Audit trail| LOGS
@@ -203,7 +204,8 @@ flowchart LR
 |-------|------|-------------|------------|----------------|
 | SharedState | Arc<RwLock<HashMap>> | Volatile (in-memory) | ~50 MB | Sub-ms reads, async writes |
 | Price Cache | Vec<OhlcvBar> per symbol | Volatile (in-memory) | ~300 MB | 5-second refresh |
-| redb | Embedded KV | Persistent (disk) | ~400 MB | Episodic decisions, trade history |
+| redb | Embedded KV | Persistent (disk) | ~200 MB | Real-time state cache |
+| SQLite | Embedded Relational | Persistent (disk) | ~200 MB | Episodic history, regret events, logs, rule changes |
 | LanceDB | Vector DB | Persistent (disk) | ~400 MB | Semantic similarity search |
 | Agent Logs | JSON Lines file | Persistent (disk) | ~100 MB | Audit trail, debugging |
 

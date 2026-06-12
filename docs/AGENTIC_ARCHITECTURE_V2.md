@@ -55,7 +55,7 @@ graph TB
     end
 
     subgraph "MEMORY LAYER"
-        EPISODE[Episodic Store<br/>structured episodes.json]
+        EPISODE[Episodic Store<br/>SQLite Database (WAL)]
         VECTOR[Vector Store<br/>LanceDB: embeddings + similarity]
         PROCEDURAL[Procedural Store<br/>accumulated lessons/rules]
     end
