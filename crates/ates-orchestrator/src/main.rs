@@ -2,7 +2,6 @@ mod loops;
 
 use ates_autonomous::state::initialize_autonomous_system;
 use std::time::Duration;
-use tokio::time::sleep;
 use tokio::sync::{watch, Mutex as TokioMutex};
 use tokio::signal;
 use std::sync::Arc;
@@ -262,12 +261,13 @@ async fn stop_autonomous_system(
 }
 
 #[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct TradeRequest {
     symbol: String,
-    directionStr: String,
-    entryPrice: f64,
-    stopLoss: f64,
-    takeProfit: f64,
+    direction_str: String,
+    entry_price: f64,
+    stop_loss: f64,
+    take_profit: f64,
 }
 
 async fn execute_trade(
@@ -277,7 +277,7 @@ async fn execute_trade(
     use ates_core::{TradeDirection, TradeSetup, validate_trade_setup};
     use ates_autonomous::types::TradeSignal;
 
-    let direction = match req.directionStr.to_lowercase().as_str() {
+    let direction = match req.direction_str.to_lowercase().as_str() {
         "long" | "buy"   => TradeDirection::Long,
         "short" | "sell" => TradeDirection::Short,
         _                => return (axum::http::StatusCode::BAD_REQUEST, "Invalid direction. Use 'long' or 'short'".to_string()),
@@ -287,10 +287,10 @@ async fn execute_trade(
     let portfolio_equity = state.orchestrator.state.portfolio.read().await.total_equity;
     let context = ates_core::MarketContext {
         symbol: req.symbol.clone(),
-        current_price: req.entryPrice,
-        high: req.entryPrice * 1.01,
-        low: req.entryPrice * 0.99,
-        previous_close: req.entryPrice,
+        current_price: req.entry_price,
+        high: req.entry_price * 1.01,
+        low: req.entry_price * 0.99,
+        previous_close: req.entry_price,
         timestamp: chrono::Utc::now(),
         daily_pnl: 0.0,
         equity: portfolio_equity,
@@ -299,7 +299,7 @@ async fn execute_trade(
         trend_direction: None,
     };
 
-    let setup = TradeSetup::new(req.symbol.clone(), direction, req.entryPrice, req.stopLoss, req.takeProfit, context);
+    let setup = TradeSetup::new(req.symbol.clone(), direction, req.entry_price, req.stop_loss, req.take_profit, context);
     let rules = state.orchestrator.state.rules.read().await;
     let check = validate_trade_setup(&setup.context, &*rules);
 
