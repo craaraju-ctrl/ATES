@@ -306,7 +306,7 @@ async fn execute_trade(
     if !check.passed {
         state.orchestrator.state.push_cot(
             "DisciplineCore",
-            &format!("Discipline check for {} {} @ {:.2}", req.symbol, req.directionStr, req.entryPrice),
+            &format!("Discipline check for {} {} @ {:.2}", req.symbol, req.direction_str, req.entry_price),
             "REJECTED",
             &check.reasons.join("; "),
             0.0,
@@ -317,16 +317,16 @@ async fn execute_trade(
         return (axum::http::StatusCode::BAD_REQUEST, format!("DISCIPLINE REJECTED: {}", check.reasons.join(", ")));
     }
 
-    if req.entryPrice <= 0.0 || req.stopLoss <= 0.0 || req.takeProfit <= 0.0 {
+    if req.entry_price <= 0.0 || req.stop_loss <= 0.0 || req.take_profit <= 0.0 {
         return (axum::http::StatusCode::BAD_REQUEST, "INVALID PRICES: Entry, Stop Loss and Take Profit must be positive".to_string());
     }
 
     let signal = TradeSignal {
         symbol: req.symbol.clone(),
         direction,
-        entry_price: req.entryPrice,
-        stop_loss: req.stopLoss,
-        take_profit: req.takeProfit,
+        entry_price: req.entry_price,
+        stop_loss: req.stop_loss,
+        take_profit: req.take_profit,
         position_size: 10.0,
         confidence_score: 0.85,
         confluence_score: 0.85,

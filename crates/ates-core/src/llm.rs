@@ -36,10 +36,13 @@ pub struct LlmExecutor {
 
 impl Default for LlmExecutor {
     fn default() -> Self {
+        let model = std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| "ministral-3:3b-cloud".to_string());
+        let endpoint = std::env::var("OLLAMA_ENDPOINT").unwrap_or_else(|_| "http://localhost:11434/api/generate".to_string());
+        println!("[LlmExecutor] 🤖 Selected Ollama model: {} | Endpoint: {}", model, endpoint);
         Self {
             client: Client::new(),
-            model: std::env::var("OLLAMA_MODEL").unwrap_or_else(|_| "ministral-3:3b-cloud".to_string()),
-            endpoint: std::env::var("OLLAMA_ENDPOINT").unwrap_or_else(|_| "http://localhost:11434/api/generate".to_string()),
+            model,
+            endpoint,
         }
     }
 }
