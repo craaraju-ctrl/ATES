@@ -5,7 +5,7 @@ use ates_core::{
     Agent, AgentTier, AgentInput, AgentOutput,
     MarketContext, calculate_pivot_points, calculate_confluence_score,
     is_in_trading_session,
-    KronosClient, KronosForecastRequest, OhlcvBar,
+    KronosForecastTool, KronosForecastRequest, OhlcvBar,
     TrendDirection,
 };
 use crate::state::SharedState;
@@ -29,7 +29,7 @@ impl MarketIntelligenceAgent {
         let prev_close = price * 0.998;
 
         // --- Kronos Forecast Service ---
-        let kronos_client = KronosClient::new(self.state.config.kronos_service_url.clone());
+        let kronos_client = KronosForecastTool::new(self.state.config.kronos_service_url.clone());
 
         let sample_ohlcv = vec![
             OhlcvBar {

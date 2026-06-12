@@ -33,4 +33,4 @@ pub use role::AgentRole;
 pub use llm::{LlmExecutor, LlmTradeDecision};
 pub use config::Config;
 pub use execution::ExecutionEngine;
-pub use kronos_client::{KronosClient, KronosForecastRequest, KronosForecastResponse, OhlcvBar};
+pub use kronos_client::{KronosClient, KronosForecastRequest, KronosForecastResponse, OhlcvBar, KronosForecastTool};
