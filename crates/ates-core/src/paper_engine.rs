@@ -907,7 +907,7 @@ impl BrokerAdapter for PaperBroker {
         self.engine.place_order(request, market_price).await
     }
 
-    async fn cancel_order(&self, order_id: &str) -> Result<(), String> {
+    async fn cancel_order(&self, _order_id: &str) -> Result<(), String> {
         Err("Cancel not implemented for PaperBroker (orders fill instantly)".to_string())
     }
 
@@ -962,6 +962,7 @@ impl BrokerAdapter for PaperBroker {
 
 /// Zerodha Kite Live Broker — connects to the real Kite API.
 /// Same code path as PaperBroker — only the settlement differs.
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct ZerodhaKiteBroker {
     api_key: String,
@@ -1048,6 +1049,7 @@ impl BrokerAdapter for ZerodhaKiteBroker {
 
 // ── Angel One Broker Stub ────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct AngelOneBroker {
     api_key: String,
