@@ -11,8 +11,6 @@ use crate::types::{PortfolioState, TradeSignal, MarketRegime, CotEntry};
 use ates_core::{CandlestickPattern, MultiTfPatternConfirmation};
 use crate::episode_store::EpisodeStore;
 
-/// Maximum OHLCV bars kept per symbol in RAM (older bars are dropped).
-const MAX_OHLCV_BARS: usize = 200;
 /// Maximum COT entries kept in RAM before flushing to SQLite.
 const MAX_COT_RAM: usize = 50;
 

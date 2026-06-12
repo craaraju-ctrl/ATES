@@ -45,7 +45,7 @@ impl StrategyDecisionAgent {
             timestamp: Utc::now(),
             daily_pnl: portfolio.daily_pnl,
             equity: portfolio.cash_balance + portfolio.open_positions.iter()
-                .map(|p| (p.current_price * p.quantity))
+                .map(|p| p.current_price * p.quantity)
                 .sum::<f64>(),
             consecutive_losses: portfolio.consecutive_losses,
             is_red_folder_day: false,

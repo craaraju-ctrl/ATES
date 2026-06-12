@@ -48,7 +48,6 @@ impl PatternRetrieverAgent {
         if !similar.is_empty() {
             let total = similar.len();
             let wins  = similar.iter().filter(|e| e.outcome == "WIN").count();
-            let losses = similar.iter().filter(|e| e.outcome == "LOSS").count();
             let avg_pnl: f64 = similar.iter().map(|e| e.pnl).sum::<f64>() / total as f64;
             let avg_regret: f64 = similar.iter().map(|e| e.regret_score).sum::<f64>() / total as f64;
             let win_rate = wins as f64 / total as f64;
