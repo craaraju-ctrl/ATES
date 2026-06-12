@@ -28,24 +28,35 @@ graph TB
         ORCH[AutonomousOrchestrator]
     end
 
-    subgraph "Agent Layer [ates-autonomous]"
-        MI[MarketIntelligence\nKronos + Confluence]
-        SD[StrategyDecision\nLLM Signal Generation]
-        RP[RiskPsychology\nDrawdown + Heat Check]
-        REF[Reflector\nPost-Trade Analysis]
-        PM[PortfolioManager\nPosition Accounting]
-        EXEC[ExecutionCoordinator\nPaper Trading]
-        MC[MetaControl\nRule Auto-Adjustment]
-    end
+    subgraph "Agent Layer (Tredo Groups) [ates-autonomous]"
+        subgraph "Identifier [Scanning & Context]"
+            MI[MarketIntelligenceAgent]
+            WS[WatchlistScannerAgent]
+            PC[PivotCalculatorAgent]
+            CS[ConfluenceScorerAgent]
+            PR[PatternRetrieverAgent]
+            ST[SessionTimerAgent]
+            RFC[RedFolderCheckerAgent]
+        end
 
-    subgraph "Sub-Agent Layer [Pure Logic]"
-        PC[PivotCalculator]
-        CS[ConfluenceScorer]
-        ST[SessionTimer]
-        DM[DrawdownMonitor]
-        RFC[RedFolderChecker]
-        OP[OvertradingPreventer]
-        PR[PatternRetriever]
+        subgraph "Verifier [Risk & Psych Validation]"
+            RP[RiskPsychologyAgent]
+            RC[RiskCalculatorAgent]
+            REF[ReflectorAgent]
+        end
+
+        subgraph "Executer [Trade Generation]"
+            SD[StrategyDecisionAgent]
+            PM[PortfolioManagerAgent]
+            EXEC[ExecutionCoordinatorAgent]
+        end
+
+        subgraph "Guardian [Account Safeguards]"
+            DM[DrawdownMonitorAgent]
+            OP[OvertradingPreventerAgent]
+            OL[OutcomeLoggerAgent]
+        end
+        MC[MetaControlAgent\nRule Adjustment]
     end
 
     subgraph "Core Layer [ates-core]"

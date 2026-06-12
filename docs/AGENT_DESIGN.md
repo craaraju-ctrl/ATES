@@ -4,45 +4,41 @@
 
 ---
 
-## 🏗️ Agent Hierarchy
+## 🏗️ Agent Hierarchy & Logical Groups (Tredo)
+
+ATES structures its agents into a **four-stage temporal flow** wrapped under the **`Tredo`** orchestrator view. This divides execution logically into scanning, pre-trade verification, execution, and continuous account guarding:
 
 ```mermaid
 graph TB
-    subgraph "Main Agents [LLM-Capable Coordinators]"
-        ORCH[AutonomousOrchestrator]
-        MI[MarketIntelligenceAgent\n🔍 Data Fusion & Regime Detection]
-        SD[StrategyDecisionAgent\n🤖 Trade Signal Generation]
-        RP[RiskPsychologyAgent\n🧠 Risk Management & Discipline]
-        REF[ReflectorAgent\n💡 Post-Trade Review & Learning]
-        PM[PortfolioManagerAgent\n📊 Overall Exposure & Accounting]
-        EXEC[ExecutionCoordinatorAgent\n⚡ Final Safety & Paper Execution]
-        MC[MetaControlAgent\n🔄 Rule Self-Adjustment]
-    end
+    subgraph "Tredo Logical Hierarchy"
+        subgraph "1. Identifier [Market & Setup]"
+            WS[WatchlistScannerAgent]
+            MI[MarketIntelligenceAgent]
+            PC[PivotCalculatorAgent]
+            CS[ConfluenceScorerAgent]
+            PR[PatternRetrieverAgent]
+            ST[SessionTimerAgent]
+            RFC[RedFolderCheckerAgent]
+        end
 
-    subgraph "Sub-Agents [Pure Logic — No LLM]"
-        subgraph "Technical"
-            PC[PivotCalculator\nPivot Points S/R]
-            CS[ConfluenceScorer\nMulti-Factor Score]
-            ST[SessionTimer\nTimezone-Aware Timing]
+        subgraph "2. Verifier [Pre-Trade Validation]"
+            RP[RiskPsychologyAgent]
+            RC[RiskCalculatorAgent]
+            REF[ReflectorAgent]
         end
-        subgraph "Risk"
-            PS[PositionSizer\nSize by Stop Distance]
-            DM[DrawdownMonitor\nMax DD Enforcer]
+
+        subgraph "3. Executer [Execution]"
+            SD[StrategyDecisionAgent]
+            PM[PortfolioManagerAgent]
+            EXEC[ExecutionCoordinatorAgent]
         end
-        subgraph "Psychology"
-            RFC[RedFolderChecker\nHigh-Impact News Filter]
-            OP[OvertradingPreventer\nTrade Frequency Limit]
-        end
-        subgraph "Memory"
-            OL[OutcomeLogger\nTrade Result Storage]
-            PR[PatternRetriever\nHistorical Pattern Match]
+
+        subgraph "4. Guardian [Account Safeguards]"
+            DM[DrawdownMonitorAgent]
+            OP[OvertradingPreventerAgent]
+            OL[OutcomeLoggerAgent]
         end
     end
-
-    ORCH --> MI & SD & RP & REF & PM & EXEC & MC
-    MI --> PC & CS & ST
-    RP --> PS & DM & RFC & OP
-    REF --> OL & PR
 ```
 
 ---
