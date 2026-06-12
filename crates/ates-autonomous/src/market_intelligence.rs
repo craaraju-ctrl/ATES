@@ -5,7 +5,7 @@ use ates_core::{
     Agent, AgentTier, AgentInput, AgentOutput,
     MarketContext, calculate_pivot_points, calculate_confluence_score,
     is_in_trading_session,
-    kronos_client::{KronosClient, KronosForecastRequest, OhlcvBar},
+    KronosClient, KronosForecastRequest, OhlcvBar,
     TrendDirection,
 };
 use crate::state::SharedState;
@@ -19,57 +19,85 @@ impl MarketIntelligenceAgent {
         Self { state }
     }
 
+    /// Run Kronos forecast + pivot/confluence analysis for a symbol.
+    /// Stores the full Kronos forecast JSON in SharedState.last_forecast for Phase 5 (LLM).
     pub async fn analyze_market(&self, symbol: &str, price: f64) -> Result<(f64, ates_core::PivotLevels), Box<dyn Error + Send + Sync>> {
         let rules = self.state.rules.read().await;
 
         let high = price * 1.015;
-        let low = price * 0.985;
+        let low  = price * 0.985;
         let prev_close = price * 0.998;
 
-        // --- Kronos Forecast Service Integration ---
+        // --- Kronos Forecast Service ---
         let kronos_client = KronosClient::new(self.state.config.kronos_service_url.clone());
-        
+
         let sample_ohlcv = vec![
             OhlcvBar {
                 timestamp: Utc::now().to_rfc3339(),
-                open: prev_close,
+                open:  prev_close,
                 high,
                 low,
                 close: price,
-                volume: 100000.0,
+                volume: 100_000.0,
             }
         ];
 
         let forecast_req = KronosForecastRequest {
             symbol: symbol.to_string(),
-            ohlcv: sample_ohlcv,
-            pred_len: 5,
-            temperature: 0.8,
-            top_p: 0.9,
+            ohlcv:  sample_ohlcv,
+            pred_len:     5,
+            temperature:  0.8,
+            top_p:        0.9,
             sample_count: 1,
         };
 
         let mut trend_direction = None;
+        let mut forecast_summary = String::from("No forecast available");
+
         match kronos_client.forecast(forecast_req).await {
             Ok(resp) => {
-                if let Some(last_forecast) = resp.forecasts.last() {
-                    if let Some(pred_close) = last_forecast.get("close").and_then(|c| c.as_f64()) {
-                        println!(
-                            "[MarketIntelligence] Kronos predicted close for {}: {:.2} (current: {:.2})",
-                            symbol, pred_close, price
-                        );
-                        if pred_close > price {
-                            trend_direction = Some(TrendDirection::Bullish);
-                        } else if pred_close < price {
-                            trend_direction = Some(TrendDirection::Bearish);
-                        } else {
-                            trend_direction = Some(TrendDirection::Neutral);
-                        }
-                    }
+                // Summarise the 5-bar forecast for the LLM prompt
+                let closes: Vec<f64> = resp.forecasts.iter()
+                    .filter_map(|f| f.get("close").and_then(|c| c.as_f64()))
+                    .collect();
+
+                if let Some(&pred_close) = closes.last() {
+                    println!(
+                        "[MarketIntelligence] Kronos predicted close for {}: {:.2} (current: {:.2})",
+                        symbol, pred_close, price
+                    );
+
+                    trend_direction = Some(if pred_close > price {
+                        TrendDirection::Bullish
+                    } else if pred_close < price {
+                        TrendDirection::Bearish
+                    } else {
+                        TrendDirection::Neutral
+                    });
+
+                    let pct_change = (pred_close - price) / price * 100.0;
+                    forecast_summary = format!(
+                        "Predicts {:.2} in 5 bars ({:+.2}%). Closes: {}",
+                        pred_close,
+                        pct_change,
+                        closes.iter().map(|c| format!("{:.2}", c)).collect::<Vec<_>>().join(", ")
+                    );
+                }
+
+                // Store full forecast JSON for Phase 5 (StrategyDecisionAgent)
+                {
+                    let mut last = self.state.last_forecast.write().await;
+                    *last = Some(serde_json::json!({
+                        "symbol": symbol,
+                        "forecasts": resp.forecasts,
+                        "summary": forecast_summary.clone(),
+                    }));
                 }
             }
             Err(e) => {
-                println!("[MarketIntelligence] Kronos service call failed: {}. Defaulting to Neutral trend.", e);
+                println!("[MarketIntelligence] Kronos call failed: {}. Defaulting to Neutral.", e);
+                let mut last = self.state.last_forecast.write().await;
+                *last = None;
             }
         }
 
@@ -86,14 +114,16 @@ impl MarketIntelligenceAgent {
             trend_direction,
         };
 
-        let pivots = calculate_pivot_points(high, low, prev_close, rules.pivot_method);
+        let pivots    = calculate_pivot_points(high, low, prev_close, rules.pivot_method);
         let confluence = calculate_confluence_score(&context, &pivots);
         let session_valid = is_in_trading_session(Utc::now(), &rules);
 
         println!(
-            "[MarketIntelligence] {} @ {:.2} | Pivot: {:.2} | R1: {:.2} | S1: {:.2} | Confluence: {:.2}% | Session: {}",
-            symbol, price, pivots.pivot, pivots.r1, pivots.s1, confluence * 100.0,
-            if session_valid { "VALID" } else { "INVALID" }
+            "[MarketIntelligence] {} @ {:.2} | Pivot: {:.2} | R1: {:.2} | S1: {:.2} | Confluence: {:.2}% | Session: {} | {}",
+            symbol, price, pivots.pivot, pivots.r1, pivots.s1,
+            confluence * 100.0,
+            if session_valid { "VALID" } else { "INVALID" },
+            forecast_summary
         );
 
         let _ = self.state.memory.store_decision(

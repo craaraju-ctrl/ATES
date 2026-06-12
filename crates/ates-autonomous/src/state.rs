@@ -12,6 +12,10 @@ pub struct SharedState {
     pub last_signals: Arc<RwLock<Vec<TradeSignal>>>,
     pub market_regime: Arc<RwLock<Option<MarketRegime>>>,
     pub llm: Arc<LlmExecutor>,
+    /// Kronos forecast stored by MarketIntelligenceAgent (Phase 2) for use in StrategyDecisionAgent (Phase 5).
+    pub last_forecast: Arc<RwLock<Option<serde_json::Value>>>,
+    /// LLM reasoning from last cycle — stored for debugging / UI display.
+    pub last_llm_reason: Arc<RwLock<String>>,
 }
 
 impl SharedState {
@@ -39,6 +43,8 @@ impl SharedState {
             last_signals: Arc::new(RwLock::new(Vec::new())),
             market_regime: Arc::new(RwLock::new(None)),
             llm: Arc::new(LlmExecutor::new()),
+            last_forecast: Arc::new(RwLock::new(None)),
+            last_llm_reason: Arc::new(RwLock::new(String::new())),
         }
     }
 }

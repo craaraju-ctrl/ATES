@@ -30,6 +30,7 @@ pub use agent::{Agent, AgentTier, AgentInput, AgentOutput};
 pub use memory::MemoryStore;
 pub use messages::{AgentMessage, LLMRequest, LLMResponse};
 pub use role::AgentRole;
-pub use llm::LlmExecutor;
+pub use llm::{LlmExecutor, LlmTradeDecision};
 pub use config::Config;
 pub use execution::ExecutionEngine;
+pub use kronos_client::{KronosClient, KronosForecastRequest, KronosForecastResponse, OhlcvBar};
