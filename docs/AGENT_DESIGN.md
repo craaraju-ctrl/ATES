@@ -1,35 +1,189 @@
-# ATES Agent Design
+# 🧠 ATES Agent Design
 
-## Two-Tier Architecture
+> **Two-Tier Hierarchical Architecture** — Main Agents orchestrate with LLM reasoning; Sub-Agents execute deterministic, pure-logic computations.
 
-### Main Agents (LLM-capable)
-Limited to 5–6 agents. These can call LLMs when needed.
+---
+
+## 🏗️ Agent Hierarchy
+
+```mermaid
+graph TB
+    subgraph "Main Agents [LLM-Capable Coordinators]"
+        ORCH[AutonomousOrchestrator]
+        MI[MarketIntelligenceAgent\n🔍 Data Fusion & Regime Detection]
+        SD[StrategyDecisionAgent\n🤖 Trade Signal Generation]
+        RP[RiskPsychologyAgent\n🧠 Risk Management & Discipline]
+        REF[ReflectorAgent\n💡 Post-Trade Review & Learning]
+        PM[PortfolioManagerAgent\n📊 Overall Exposure & Accounting]
+        EXEC[ExecutionCoordinatorAgent\n⚡ Final Safety & Paper Execution]
+        MC[MetaControlAgent\n🔄 Rule Self-Adjustment]
+    end
+
+    subgraph "Sub-Agents [Pure Logic — No LLM]"
+        subgraph "Technical"
+            PC[PivotCalculator\nPivot Points S/R]
+            CS[ConfluenceScorer\nMulti-Factor Score]
+            ST[SessionTimer\nTimezone-Aware Timing]
+        end
+        subgraph "Risk"
+            PS[PositionSizer\nSize by Stop Distance]
+            DM[DrawdownMonitor\nMax DD Enforcer]
+        end
+        subgraph "Psychology"
+            RFC[RedFolderChecker\nHigh-Impact News Filter]
+            OP[OvertradingPreventer\nTrade Frequency Limit]
+        end
+        subgraph "Memory"
+            OL[OutcomeLogger\nTrade Result Storage]
+            PR[PatternRetriever\nHistorical Pattern Match]
+        end
+    end
+
+    ORCH --> MI & SD & RP & REF & PM & EXEC & MC
+    MI --> PC & CS & ST
+    RP --> PS & DM & RFC & OP
+    REF --> OL & PR
+```
+
+---
+
+## 🧩 Main Agent Responsibilities
+
+```mermaid
+flowchart LR
+    subgraph "Perception Layer"
+        MI[MarketIntelligence]
+    end
+    subgraph "Reasoning Layer"
+        SD[StrategyDecision]
+        RP[RiskPsychology]
+        REF[Reflector]
+    end
+    subgraph "Execution Layer"
+        PM[PortfolioManager]
+        EXEC[ExecutionCoordinator]
+    end
+    subgraph "Meta Layer"
+        MC[MetaControl]
+    end
+
+    MI -->|Confluence Score| SD
+    MI -->|Market Context| RP
+    SD -->|TradeSignal| PM
+    SD -->|TradeSignal| EXEC
+    RP -->|RiskAnalysis| SD
+    PM -->|Position Update| EXEC
+    REF -->|Lessons| MC
+    MC -->|Rule Adjustment| RP
+```
 
 | Agent | Role | LLM Usage | Key Responsibilities |
-|-------|------|-----------|----------------------|
-| Market Intelligence | Data fusion & regime detection | Low–Medium | Confluence scoring, technical + on-chain analysis |
-| Strategy & Decision | Trade idea generation | Medium | Setup identification, bias determination |
-| Risk & Psychology | Risk management + discipline | Low | Position sizing, drawdown control, red-folder enforcement |
-| Reflector / Critic | Post-trade review & learning | Medium | Outcome analysis, pattern detection |
-| Portfolio Manager | Overall exposure | Low | Correlation, capital allocation |
-| Execution Coordinator | Final safety check | Very Low | Slippage, liquidity, kill-switch |
+|-------|------|-----------|---------------------|
+| **MarketIntelligence** 🔍 | Data fusion & regime detection | Low–Medium | Confluence scoring, pivot calculation, Kronos forecast, candlestick pattern detection (15 patterns across 4 timeframes) |
+| **StrategyDecision** 🤖 | Trade signal generation | Medium | LLM-driven BUY/SELL/HOLD with enriched context (Kronos forecast, calendar events, vector memory, news, multi-TF patterns) |
+| **RiskPsychology** 🧠 | Risk management & discipline | Low | Position sizing, drawdown control, portfolio heat, psychology warnings (revenge trading, overtrading) |
+| **Reflector** 💡 | Post-trade review & learning | Medium | Outcome analysis, violated assumptions, regret scoring, lesson extraction |
+| **PortfolioManager** 📊 | Overall exposure & accounting | Low | LONG/SHORT accounting, cash balance management, position correlation |
+| **ExecutionCoordinator** ⚡ | Final safety & paper execution | Very Low | Slippage check, liquidity check, kill-switch, SL/TP auto-exit |
+| **MetaControl** 🔄 | Rule self-adjustment | Medium | Weekly review of high-regret episodes, LLM-proposed rule changes |
 
-### Sub-Agents (Pure Logic)
-Lightweight and fast. No LLM calls.
+---
 
-**Categories**:
-- Technical Sub-Agents (Pivot Calculator, Confluence Scorer, Session Timer)
-- Risk Sub-Agents (Position Sizer, Drawdown Monitor)
-- Psychology Sub-Agents (Red Folder Checker, Overtrading Preventer)
-- Memory Sub-Agents (Outcome Logger, Pattern Retriever)
+## ⚙️ Sub-Agent Specifications
 
-## Design Rules
+All Sub-Agents are **deterministic, pure-logic** computations with no LLM dependency. They execute in milliseconds and form the backbone of the system's reliability.
 
-- Sub-Agents must be **deterministic and fast**.
-- Main Agents act as coordinators.
-- Most decisions should be resolved by Sub-Agents + Disciplined Core.
-- LLM is only used when uncertainty is high or synthesis is complex.
+### Technical Sub-Agents
 
-## Goal
+| Sub-Agent | Input | Output | Algorithm |
+|-----------|-------|--------|-----------|
+| **PivotCalculator** | High, Low, Close | `PivotLevels { pivot, r1, r2, r3, s1, s2, s3 }` | Classic / Fibonacci / Woodie / Camarilla |
+| **ConfluenceScorer** | MarketContext + PivotLevels | Score (0.0–1.0) | Multi-factor weighted sum: trend alignment, S/R proximity, volume confirmation, volatility |
+| **SessionTimer** | Timestamp | `SessionInfo { open, name, time_remaining }` | IST-aware: London (13:30 IST) + NY (17:30 IST) |
 
-Create a system where agents feel like **specialized trading professionals** rather than generic AI assistants.
+### Risk Sub-Agents
+
+| Sub-Agent | Input | Output | Algorithm |
+|-----------|-------|--------|-----------|
+| **PositionSizer** | Equity, Risk%, Entry, Stop | Position size (units) | `equity × risk% / |entry - stop|` |
+| **DrawdownMonitor** | Daily P&L, Equity | Max drawdown %, HALT if exceeded | Track峰值 → trough, compare to max_daily_drawdown (3%) |
+
+### Psychology Sub-Agents
+
+| Sub-Agent | Input | Output | Algorithm |
+|-----------|-------|--------|-----------|
+| **RedFolderChecker** | Calendar events, Symbol | `bool` (blocked / allowed) | Matches symbol against high-impact events, synchronized to IST |
+| **OvertradingPreventer** | Trade count, Max trades per day | `bool` (allowed / blocked) | `trade_count >= max_daily_trades → BLOCK` |
+
+### Memory Sub-Agents
+
+| Sub-Agent | Input | Output | Algorithm |
+|-----------|-------|--------|-----------|
+| **OutcomeLogger** | TradeSignal, Outcome | Stored episode | Writes structured `TradingEpisode` to redb + LanceDB |
+| **PatternRetriever** | Current MarketContext | `Vec<PatternMatch>` | Searches historical episodes, ranks by similarity score |
+
+---
+
+## 🔄 Pipeline Phase Flow
+
+```mermaid
+flowchart TD
+    START[Start Pipeline] --> P0{Phase 0:\nOpen Position?}
+    P0 -->|Yes| SKIP[Skip — Position Exists]
+    P0 -->|No| P1[Phase 1:\nDiscipline Guards]
+    
+    P1 --> P1C{Sub-Agent Consensus}
+    P1C -->|FAIL| P1F[Return: Discipline Failed]
+    P1C -->|PASS| P2[Phase 2:\nMarket Intelligence]
+    
+    P2 --> P2A[Kronos Forecast]
+    P2 --> P2B[Pivot Calculation]
+    P2 --> P2C[Confluence Scoring]
+    P2 --> P2D[Pattern Detection\n1m + 15m + 1h + 1d]
+    P2 --> P2E[Market Regime Detection]
+    
+    P2 --> P3[Phase 3:\nRisk Psychology]
+    P3 --> P3A[Portfolio Heat Check]
+    P3 --> P3B[Drawdown Limit Check]
+    P3 --> P3C[Consecutive Loss Check]
+    
+    P3 --> P3R{Risk Recommendation}
+    P3R -->|HALT| P3F[Return: Risk Halted]
+    P3R -->|Proceed| P4[Phase 4:\nReflection]
+    
+    P4 --> P5[Phase 5:\nStrategy Decision\nLLM Signal Generation]
+    P5 --> P5C{LLM Decision}
+    
+    P5C -->|HOLD| P5H[Return: HOLD]
+    P5C -->|BUY/SELL| P6[Phase 6:\nExecution]
+    
+    P6 --> P6A[Paper Trade Fill]
+    P6 --> P6B[Portfolio Update]
+    P6 --> P6C[COT Entry]
+    P6 --> DONE[Done: Trade Executed]
+```
+
+---
+
+## 🎭 Agent Personas
+
+Each Main Agent is designed with a distinct **trading personality**:
+
+| Agent | Persona | Voice |
+|-------|---------|-------|
+| **MarketIntelligence** | The Analyst | "Confluence is 0.72, pivot at 24,500 is holding. R1 at 24,620 would be my first target." |
+| **StrategyDecision** | The Trader | "I'm seeing bullish engulfing on 1m with 75% strength. Kronos confirms upward drift. I'll take the long." |
+| **RiskPsychology** | The Risk Officer | "Portfolio heat at 12%, DD at 1.2%, 3 consecutive losses. I'm recommending size reduction." |
+| **Reflector** | The Mentor | "You entered during low confluence (0.35). Wait for confirmation next time. Regret score: 0.7." |
+| **MetaControl** | The Coach | "Reviewing 12 episodes: 4 high-regret. Pattern: entering before FOMC. Adjusting max_risk_per_trade to 0.8%." |
+
+---
+
+## 💡 Design Rules
+
+1. **Sub-Agents must be deterministic and fast** — they are the foundation of reliability
+2. **Main Agents act as coordinators** — they delegate to Sub-Agents and synthesize results
+3. **Most decisions should be resolved by Sub-Agents + Disciplined Core** — without invoking LLM
+4. **LLM is only used when uncertainty is high or synthesis is complex** — it's a scarce resource
+5. **Every decision must be auditable** — chain-of-thought entries capture the full reasoning path
+6. **Agents should feel like specialized trading professionals** — not generic AI assistants

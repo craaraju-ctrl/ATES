@@ -72,6 +72,14 @@ impl PortfolioManagerAgent {
     pub async fn add_position(&self, signal: &TradeSignal) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut portfolio = self.state.portfolio.write().await;
 
+        if !portfolio.trading_enabled {
+            return Err("Trading is disabled/halted".into());
+        }
+
+        if portfolio.open_positions.iter().any(|p| p.symbol == signal.symbol) {
+            return Err("Position already open for this symbol".into());
+        }
+
         let position_value = signal.position_size * signal.entry_price;
         if position_value > portfolio.cash_balance * 0.95 {
             return Err("Insufficient cash for position".into());

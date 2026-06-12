@@ -17,6 +17,7 @@ reqwest = { version = "0.11", features = ["json"] }
 # ATES Core + Agents integration
 ates-core = { path = "../crates/ates-core" }
 ates-agents = { path = "../crates/ates-agents" }
+ates-autonomous = { path = "../crates/ates-autonomous" }
 
 [features]
 default = ["custom-protocol"]

@@ -4,9 +4,12 @@
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use crate::state::SharedState;
+use crate::tredo::Tredo;
 
+#[derive(Clone)]
 pub struct AutonomousOrchestrator {
     pub state: SharedState,
+    pub tredo: Option<Tredo>,
     pub market_intel: Arc<crate::market_intelligence::MarketIntelligenceAgent>,
     pub risk_psych: Arc<crate::risk_psychology::RiskPsychologyAgent>,
     pub reflector: Arc<crate::reflector::ReflectorAgent>,
@@ -22,10 +25,23 @@ pub struct AutonomousOrchestrator {
     pub overtrading: Arc<crate::overtrading_preventer::OvertradingPreventerAgent>,
     pub outcome_logger: Arc<crate::outcome_logger::OutcomeLoggerAgent>,
     pub pattern_retriever: Arc<crate::pattern_retriever::PatternRetrieverAgent>,
+    pub scanner: Arc<crate::scanner::WatchlistScannerAgent>,
     pub results: Arc<RwLock<Vec<crate::types::PipelineResult>>>,
 }
 
 impl AutonomousOrchestrator {
+    /// Convenience accessor for the Tredo agent hierarchy.
+    /// Panics if init_tredo() has not been called after construction.
+    pub fn tredo(&self) -> &Tredo {
+        self.tredo.as_ref().expect("Tredo not initialized — call init_tredo() after construction")
+    }
+
+    /// Initialize the Tredo agent hierarchy (must be called once after construction).
+    /// Uses Arc::clone() for zero-copy sharing — no agent state is duplicated.
+    pub fn init_tredo(&mut self) {
+        self.tredo = Some(Tredo::from_orchestrator(self));
+    }
+
     pub fn new(state: SharedState) -> Self {
         Self {
             market_intel: Arc::new(crate::market_intelligence::MarketIntelligenceAgent::new(state.clone())),
@@ -43,8 +59,10 @@ impl AutonomousOrchestrator {
             overtrading: Arc::new(crate::overtrading_preventer::OvertradingPreventerAgent::new(state.clone())),
             outcome_logger: Arc::new(crate::outcome_logger::OutcomeLoggerAgent::new(state.clone())),
             pattern_retriever: Arc::new(crate::pattern_retriever::PatternRetrieverAgent::new(state.clone())),
+            scanner: Arc::new(crate::scanner::WatchlistScannerAgent::new(state.clone())),
             results: Arc::new(RwLock::new(Vec::new())),
             state,
+            tredo: None, // set to Some(Tredo::from_orchestrator(self)) after construction
         }
     }
 

@@ -2,6 +2,7 @@ use std::error::Error;
 use reqwest::Client;
 use serde_json::json;
 use serde::Deserialize;
+use crate::news::NewsItem;
 
 /// Structured trade decision returned by the LLM.
 #[derive(Debug, Clone)]
@@ -82,7 +83,17 @@ impl LlmExecutor {
     }
 
     /// Ask the LLM to produce a structured trade decision (BUY/SELL/HOLD).
+    /// 
+    /// This is the core agentic AI decision function. The LLM receives:
+    /// - Real-time market data (price, pivots, confluence)
+    /// - Kronos AI forecast summary
+    /// - Portfolio risk state
+    /// - Upcoming economic calendar events
+    /// - Current trading goals / mode
+    /// - Multi-timeframe context
+    /// 
     /// Returns LlmTradeDecision::default() (HOLD) on any error, so the pipeline always continues.
+    #[allow(clippy::too_many_arguments)]
     pub async fn ask_for_trade_decision(
         &self,
         symbol: &str,
@@ -94,41 +105,72 @@ impl LlmExecutor {
         s1: f64,
         forecast_summary: &str,
         portfolio_heat: f64,
-        session_open: bool,
+        _session_open: bool,
         consecutive_losses: u32,
+        // New agentic context:
+        calendar_context: &str,       // e.g. "⚠ FOMC rate decision today at 14:00 EST"
+        trading_mode: &str,           // e.g. "Normal", "Conservative", "Aggressive"
+        daily_goal_context: &str,     // e.g. "Daily P&L target: +0.5% | Current: +0.12%"
+        multi_tf_context: &str,       // e.g. "1h: Bullish pivot at 24300 | 15m: Ranging"
+        agent_market_summary: &str,   // e.g. "Market conditions: BTC in uptrend..."
+        news_context: &str,
+        similar_episodes_context: &str, // "── SIMILAR PAST EPISODES ──\n 1. BTC ..."
+        patterns_context: &str,        // e.g. "── CANDLESTICK PATTERNS ──\n🟢 Bullish Engulfing (75%)"
     ) -> LlmTradeDecision {
-        // Build the structured prompt
         let sl_long  = price * 0.990;
         let tp_long  = price * 1.025;
         let sl_short = price * 1.010;
         let tp_short = price * 0.975;
 
         let prompt = format!(
-            r#"You are an autonomous trading agent for Indian and crypto markets.
-Analyze the following market data and decide whether to BUY, SELL, or HOLD.
+            r#"You are an autonomous 24/7 trading AI agent managing a portfolio.
+Analyze the data below and decide BUY, SELL, or HOLD.
 
-Market Context:
-- Symbol: {symbol}
-- Current Price: {price:.2}
-- Kronos 5-bar Forecast Summary: {forecast_summary}
-- Trend Direction: {trend}
-- Confluence Score: {confluence:.1}%
-- Pivot: {pivot:.2} | R1: {r1:.2} | S1: {s1:.2}
-- Portfolio Heat: {portfolio_heat:.1}%
-- Session Open: {session_open}
-- Consecutive Losses: {consecutive_losses}
+── MARKET DATA ──
+Symbol: {symbol}
+Price: {price:.2}
+Trend: {trend}
+Confluence: {confluence:.1}%
+Pivot: {pivot:.2} | R1: {r1:.2} | S1: {s1:.2}
+Kronos Forecast: {forecast_summary}
 
-Rules you MUST follow:
-1. Only BUY or SELL if confluence > 60%, otherwise HOLD.
-2. For BUY: sl must be BELOW entry, tp must be ABOVE entry.
-3. For SELL: sl must be ABOVE entry, tp must be BELOW entry.
-4. Risk:Reward must be >= 2:1.
-5. HOLD if session is closed (Indian markets 09:15-15:30 IST, crypto 24x7).
-6. HOLD if consecutive_losses >= 3.
-7. Suggested entry is current price. Suggested SL for BUY={sl_long:.2}, TP for BUY={tp_long:.2}. SL for SELL={sl_short:.2}, TP for SELL={tp_short:.2}.
+── MULTI-TIMEFRAME ──
+{multi_tf_context}
 
-Respond ONLY with a single line of valid JSON — no markdown, no explanation outside JSON:
-{{"action":"BUY","entry":{price:.2},"sl":{sl_long:.2},"tp":{tp_long:.2},"reason":"Your short reason here"}}
+── PORTFOLIO ──
+Heat: {portfolio_heat:.1}%
+Consecutive Losses: {consecutive_losses}
+Mode: {trading_mode}
+{daily_goal_context}
+
+── ECONOMIC CALENDAR ──
+{calendar_context}
+
+── NEWS ──
+{news_context}
+
+── SIMILAR PAST EPISODES ──
+{similar_episodes_context}
+
+── CANDLESTICK PATTERNS ──
+{patterns_context}
+
+── AGENT CONTEXT ──
+{agent_market_summary}
+
+── RULES ──
+1. HOLD if confluence < 60% unless multi-timeframe strongly aligned.
+2. BUY: sl below entry, tp above entry. SELL: opposite.
+3. R:R must >= 2:1 minimum.
+4. HOLD if session closed (crypto 24x7) or consecutive_losses >= 3.
+5. {trading_mode} mode: adjust risk and frequency accordingly.
+6. Consider economic calendar events before entering.
+
+Suggested SL for BUY={sl_long:.2}, TP={tp_long:.2}
+Suggested SL for SELL={sl_short:.2}, TP={tp_short:.2}
+
+Respond ONLY with valid JSON line:
+{{"action":"BUY","entry":{price:.2},"sl":{sl_long:.2},"tp":{tp_long:.2},"reason":"Brief reason"}}
 "#,
             symbol = symbol,
             price = price,
@@ -139,15 +181,25 @@ Respond ONLY with a single line of valid JSON — no markdown, no explanation ou
             r1 = r1,
             s1 = s1,
             portfolio_heat = portfolio_heat * 100.0,
-            session_open = session_open,
             consecutive_losses = consecutive_losses,
             sl_long = sl_long,
             tp_long = tp_long,
             sl_short = sl_short,
             tp_short = tp_short,
+            calendar_context = calendar_context,
+            trading_mode = trading_mode,
+            daily_goal_context = daily_goal_context,
+            multi_tf_context = multi_tf_context,
+            agent_market_summary = agent_market_summary,
+            news_context = news_context,
+            similar_episodes_context = similar_episodes_context,
+            patterns_context = patterns_context,
         );
 
-        println!("[LlmExecutor] Requesting trade decision from Ollama for {} @ {:.2}", symbol, price);
+        println!("[LlmExecutor] 🧠 Agentic decision for {} @ {:.2} | Mode: {} | Calendar: {}",
+            symbol, price, trading_mode,
+            if calendar_context.is_empty() { "none" } else { "loaded" }
+        );
 
         let body = json!({
             "model": self.model,
@@ -188,10 +240,275 @@ Respond ONLY with a single line of valid JSON — no markdown, no explanation ou
         Self::parse_llm_trade_decision(&ollama_res.response, price)
     }
 
+    /// Ask the LLM to do a post-trade deep reflection on an episode.
+    /// Analyzes what went wrong/right, identifies violated assumptions,
+    /// and generates a lesson for the agent's procedural memory.
+    pub async fn ask_for_reflection(
+        &self,
+        episode_summary: &str,
+        outcome_summary: &str,
+    ) -> crate::episode::PostTradeReflection {
+        let prompt = format!(
+            r#"You are a trading psychologist analysing a recent trade.
+
+EPISODE:
+{episode_summary}
+
+OUTCOME:
+{outcome_summary}
+
+Analyse this trade and respond with valid JSON only:
+{{
+  "lesson": "One-sentence lesson learned",
+  "violated_assumptions": ["assumption 1", "assumption 2"],
+  "regret_score": 0.0-1.0,
+  "what_went_wrong": ["issue 1"],
+  "what_went_right": ["positive 1"],
+  "suggested_rule_change": "optional rule suggestion or null",
+  "should_alert": false
+}}"#,
+            episode_summary = episode_summary,
+            outcome_summary = outcome_summary,
+        );
+
+        let body = serde_json::json!({
+            "model": self.model,
+            "prompt": prompt,
+            "stream": false
+        });
+
+        let default_reflection = crate::episode::PostTradeReflection {
+            timestamp: chrono::Utc::now(),
+            lesson: "Reflection unavailable".to_string(),
+            violated_assumptions: vec![],
+            regret_score: 0.5,
+            what_went_wrong: vec!["Could not analyse".to_string()],
+            what_went_right: vec![],
+            suggested_rule_change: None,
+            should_alert: false,
+        };
+
+        let res = match self.client
+            .post(&self.endpoint)
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(30))
+            .send().await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                println!("[LlmExecutor] ⚠ Reflection request failed: {e}");
+                return default_reflection;
+            }
+        };
+
+        let ollama_res: OllamaResponse = match res.json().await {
+            Ok(r) => r,
+            Err(_) => return default_reflection,
+        };
+
+        let raw = ollama_res.response;
+        let start = raw.find('{');
+        let end = raw.rfind('}');
+
+        if let (Some(s), Some(e)) = (start, end) {
+            if s <= e {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw[s..=e]) {
+                    let lesson = v["lesson"].as_str().unwrap_or("No lesson extracted").to_string();
+                    let assumptions = v["violated_assumptions"].as_array()
+                        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+                        .unwrap_or_default();
+                    let regret = v["regret_score"].as_f64().unwrap_or(0.5).clamp(0.0, 1.0);
+                    let wrong = v["what_went_wrong"].as_array()
+                        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+                        .unwrap_or_default();
+                    let right = v["what_went_right"].as_array()
+                        .map(|a| a.iter().filter_map(|x| x.as_str().map(String::from)).collect())
+                        .unwrap_or_default();
+                    let rule_change = v["suggested_rule_change"].as_str()
+                        .filter(|s| !s.is_empty() && *s != "null")
+                        .map(String::from);
+                    let alert = v["should_alert"].as_bool().unwrap_or(false);
+
+                    println!("[LlmExecutor] 📝 Reflection: regret={:.2} lesson={}", regret, lesson);
+                    return crate::episode::PostTradeReflection {
+                        timestamp: chrono::Utc::now(),
+                        lesson,
+                        violated_assumptions: assumptions,
+                        regret_score: regret,
+                        what_went_wrong: wrong,
+                        what_went_right: right,
+                        suggested_rule_change: rule_change,
+                        should_alert: alert,
+                    };
+                }
+            }
+        }
+
+        default_reflection
+    }
+
+    /// Ask the LLM to review recent high-regret episodes and propose rule changes.
+    pub async fn ask_for_meta_review(
+        &self,
+        episode_summaries: &[String],
+        current_rules_summary: &str,
+    ) -> serde_json::Value {
+        let episodes_text = episode_summaries.join("\n---\n");
+        let prompt = format!(
+            r#"You are a risk manager reviewing the agent's recent trading mistakes.
+
+HIGH-REGRET EPISODES:
+{episodes_text}
+
+CURRENT RULES:
+{current_rules_summary}
+
+Analyse these mistakes. What patterns do you see? 
+Respond with JSON:
+{{
+  "pattern": "description of common pattern",
+  "suggested_changes": [{{"rule": "max_risk_per_trade", "current_value": 0.01, "suggested_value": 0.008, "reason": "..."}}],
+  "risk_assessment": "aggregate risk level",
+  "recommendation": "summary recommendation"
+}}"#,
+            episodes_text = episodes_text,
+            current_rules_summary = current_rules_summary,
+        );
+
+        let body = serde_json::json!({
+            "model": self.model,
+            "prompt": prompt,
+            "stream": false
+        });
+
+        let default_val = serde_json::json!({
+            "pattern": "No analysis available",
+            "suggested_changes": [],
+            "risk_assessment": "unknown",
+            "recommendation": "No recommendation"
+        });
+
+        let res = match self.client
+            .post(&self.endpoint)
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(30))
+            .send().await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                println!("[LlmExecutor] ⚠ Meta-review request failed: {e}");
+                return default_val;
+            }
+        };
+
+        let ollama_res: OllamaResponse = match res.json().await {
+            Ok(r) => r,
+            Err(_) => return default_val,
+        };
+
+        let raw = ollama_res.response;
+        let start = raw.find('{');
+        let end = raw.rfind('}');
+
+        if let (Some(s), Some(e)) = (start, end) {
+            if s <= e {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw[s..=e]) {
+                    return v;
+                }
+            }
+        }
+
+        default_val
+    }
+
+    /// Generate an embedding vector for the given text using Ollama's /api/embed endpoint.
+    /// Returns a normalized vector of f32.
+    pub async fn embed_text(&self, text: &str) -> Result<Vec<f32>, Box<dyn std::error::Error + Send + Sync>> {
+        let body = json!({
+            "model": self.model.clone(),
+            "input": [text],
+        });
+
+        let embed_endpoint = self.endpoint.replace("/api/generate", "/api/embed");
+
+        let res = self.client
+            .post(&embed_endpoint)
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
+
+        let status = res.status();
+        if !status.is_success() {
+            let err_text = res.text().await.unwrap_or_default();
+            return Err(format!("Ollama embed API error {}: {}", status, err_text).into());
+        }
+
+        #[derive(serde::Deserialize)]
+        struct EmbedResponse {
+            embeddings: Vec<Vec<f32>>,
+        }
+
+        let embed_res: EmbedResponse = res.json().await?;
+        embed_res.embeddings
+            .into_iter()
+            .next()
+            .ok_or_else(|| "Empty embeddings response".into())
+    }
+
+    /// Summarize a batch of news headlines for a symbol, extracting sentiment and key risks.
+    pub async fn summarize_news(&self, headlines: &[NewsItem], symbol: &str) -> String {
+        if headlines.is_empty() {
+            return "No news available.".to_string();
+        }
+
+        let headlines_text: String = headlines.iter()
+            .map(|h| format!("- [{}] {}: {}", h.source, h.title, h.url))
+            .collect::<Vec<_>>()
+            .join("\n");
+
+        let prompt = format!(
+            r#"Summarize the following news headlines for {}.
+Extract: overall sentiment (positive/negative/neutral), key risks, and market impact.
+Keep it to 2-3 sentences.
+
+NEWS:
+{}
+
+SUMMARY:"#,
+            symbol, headlines_text
+        );
+
+        let body = json!({
+            "model": self.model,
+            "prompt": prompt,
+            "stream": false
+        });
+
+        let res = match self.client
+            .post(&self.endpoint)
+            .json(&body)
+            .timeout(std::time::Duration::from_secs(15))
+            .send().await
+        {
+            Ok(r) => r,
+            Err(e) => {
+                println!("[LlmExecutor] ⚠ News summarization failed: {e}");
+                return format!("Fetched {} headlines, summarization unavailable.", headlines.len());
+            }
+        };
+
+        let ollama_res: OllamaResponse = match res.json().await {
+            Ok(r) => r,
+            Err(_) => return format!("Fetched {} headlines, parse failed.", headlines.len()),
+        };
+
+        ollama_res.response.trim().to_string()
+    }
+
     /// Parse the JSON trade decision from the LLM response text.
     /// Robust: finds the first `{...}` block, handles extra text.
     pub fn parse_llm_trade_decision(raw: &str, current_price: f64) -> LlmTradeDecision {
-        // Find JSON object in response
         let start = raw.find('{');
         let end   = raw.rfind('}');
 
@@ -205,11 +522,10 @@ Respond ONLY with a single line of valid JSON — no markdown, no explanation ou
                     let tp     = v["tp"].as_f64().unwrap_or(0.0);
                     let reason = v["reason"].as_str().unwrap_or("LLM provided no reason").to_string();
 
-                    // Sanity-check: for BUY sl < entry < tp, for SELL tp < entry < sl
                     let valid = match action.as_str() {
                         "BUY"  => sl > 0.0 && tp > 0.0 && sl < entry && tp > entry,
                         "SELL" => sl > 0.0 && tp > 0.0 && sl > entry && tp < entry,
-                        _      => true, // HOLD is always valid
+                        _      => true,
                     };
 
                     if valid {
@@ -236,7 +552,7 @@ mod tests {
     use crate::messages::LLMRequest;
 
     #[tokio::test]
-    #[ignore] // Run manually via: cargo test -p ates-core -- --ignored test_ollama_inference
+    #[ignore]
     async fn test_ollama_inference() {
         let executor = LlmExecutor::new();
         let request = LLMRequest {
@@ -247,16 +563,14 @@ mod tests {
             max_tokens: 50,
             temperature: 0.1,
         };
-
         let result = executor.execute(request).await.expect("Failed to execute LLM request");
         println!("Response: {}", result.content);
         println!("Tokens used: {:?}", result.tokens_used);
-
         assert!(!result.content.is_empty());
     }
 
     #[tokio::test]
-    #[ignore] // Run manually via: cargo test -p ates-core -- --ignored test_trade_decision
+    #[ignore]
     async fn test_trade_decision() {
         let executor = LlmExecutor::new();
         let decision = executor.ask_for_trade_decision(
@@ -264,8 +578,14 @@ mod tests {
             24400.0, 24600.0, 24200.0,
             "Kronos predicts +0.5% over next 5 candles",
             0.05, true, 0,
+            "No high-impact events today",
+            "Normal", "Daily target: +0.5% | Current: +0.12%",
+            "1h: Bullish | 15m: Ranging",
+            "Market in steady uptrend",
+            "No news",
+            "",
+            "",
         ).await;
-
         println!("Action: {} | Entry: {:.2} | SL: {:.2} | TP: {:.2}", decision.action, decision.entry, decision.sl, decision.tp);
         println!("Reason: {}", decision.reason);
     }
@@ -280,7 +600,6 @@ mod tests {
 
     #[test]
     fn test_parse_llm_decision_invalid_sl() {
-        // SL above entry for BUY — should default to HOLD
         let raw = r#"{"action":"BUY","entry":24500.0,"sl":24800.0,"tp":25000.0,"reason":"Bad SL"}"#;
         let d = LlmExecutor::parse_llm_trade_decision(raw, 24500.0);
         assert_eq!(d.action, "HOLD");

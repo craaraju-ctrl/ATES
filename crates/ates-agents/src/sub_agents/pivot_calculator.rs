@@ -1,22 +1,27 @@
 use async_trait::async_trait;
 use std::error::Error;
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
+use ates_autonomous::SharedState;
 
-use ates_core::{Agent, AgentTier, AgentInput, AgentOutput, PivotMethod, calculate_pivot_points};
+/// Delegates to `ates_autonomous::pivot_calculator::PivotCalculatorAgent`.
+pub struct PivotCalculatorAgent {
+    inner: ates_autonomous::pivot_calculator::PivotCalculatorAgent,
+}
 
-pub struct PivotCalculatorAgent;
+impl PivotCalculatorAgent {
+    pub fn new(state: SharedState) -> Self {
+        Self {
+            inner: ates_autonomous::pivot_calculator::PivotCalculatorAgent::new(state),
+        }
+    }
+}
 
 #[async_trait]
 impl Agent for PivotCalculatorAgent {
-    fn name(&self) -> &str { "PivotCalculatorAgent" }
-    fn tier(&self) -> AgentTier { AgentTier::Sub }
+    fn name(&self) -> &str { self.inner.name() }
+    fn tier(&self) -> AgentTier { self.inner.tier() }
 
     async fn run(&self, input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
-        match input {
-            Some(AgentInput::PivotRequest { high, low, close }) => {
-                let pivots = calculate_pivot_points(high, low, close, PivotMethod::Classic);
-                Ok(AgentOutput::PivotResult(pivots))
-            }
-            _ => Ok(AgentOutput::NoOutput),
-        }
+        self.inner.run(input).await
     }
 }

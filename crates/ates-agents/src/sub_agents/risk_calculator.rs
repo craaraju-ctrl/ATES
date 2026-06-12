@@ -1,15 +1,27 @@
 use async_trait::async_trait;
 use std::error::Error;
 use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
+use ates_autonomous::SharedState;
 
-pub struct RiskCalculatorAgent;
+/// Delegates to `ates_autonomous::risk_calculator::RiskCalculatorAgent`.
+pub struct RiskCalculatorAgent {
+    inner: ates_autonomous::risk_calculator::RiskCalculatorAgent,
+}
+
+impl RiskCalculatorAgent {
+    pub fn new(state: SharedState) -> Self {
+        Self {
+            inner: ates_autonomous::risk_calculator::RiskCalculatorAgent::new(state),
+        }
+    }
+}
 
 #[async_trait]
 impl Agent for RiskCalculatorAgent {
-    fn name(&self) -> &str { "RiskCalculatorAgent" }
-    fn tier(&self) -> AgentTier { AgentTier::Sub }
-    async fn run(&self, _input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
-        println!("[{}] Calculating risk...", self.name());
-        Ok(AgentOutput::NoOutput)
+    fn name(&self) -> &str { self.inner.name() }
+    fn tier(&self) -> AgentTier { self.inner.tier() }
+
+    async fn run(&self, input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
+        self.inner.run(input).await
     }
 }

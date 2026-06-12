@@ -101,6 +101,11 @@ impl Agent for RiskPsychologyAgent {
     fn tier(&self) -> AgentTier { AgentTier::Main }
 
     async fn run(&self, input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
+        // Read real portfolio equity for accurate drawdown limit checks
+        let portfolio_equity = {
+            let portfolio = self.state.portfolio.read().await;
+            portfolio.total_equity
+        };
         let ctx = match input {
             Some(AgentInput::RiskRequest { context }) => context,
             _ => MarketContext {
@@ -111,6 +116,7 @@ impl Agent for RiskPsychologyAgent {
                 previous_close: 24480.0,
                 timestamp: Utc::now(),
                 daily_pnl: 0.0,
+                equity: portfolio_equity,
                 consecutive_losses: 0,
                 is_red_folder_day: false,
                 trend_direction: None,

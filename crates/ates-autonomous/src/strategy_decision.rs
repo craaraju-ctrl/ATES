@@ -21,13 +21,14 @@ impl StrategyDecisionAgent {
 
     /// Generate a trade signal for a symbol by:
     /// 1. Reading the Kronos forecast stored by Phase 2 (MarketIntelligenceAgent)
-    /// 2. Asking the Ollama LLM to decide BUY / SELL / HOLD with entry, SL, TP
-    /// 3. Validating the decision against discipline rules
-    /// 4. Returning the populated TradeSignal (or None if HOLD)
+    /// 2. Gathering calendar events, goals, and multi-timeframe context
+    /// 3. Asking the Ollama LLM to decide BUY / SELL / HOLD with entry, SL, TP
+    /// 4. Validating the decision against discipline rules
+    /// 5. Returning the populated TradeSignal (or None if HOLD)
     pub async fn generate_signal(
         &self,
         symbol: &str,
-        _direction: ates_core::TradeDirection,   // initial direction hint from price momentum
+        _direction: ates_core::TradeDirection,
         entry: f64,
         _stop: f64,
         _target: f64,
@@ -43,6 +44,9 @@ impl StrategyDecisionAgent {
             previous_close: entry * 0.998,
             timestamp: Utc::now(),
             daily_pnl: portfolio.daily_pnl,
+            equity: portfolio.cash_balance + portfolio.open_positions.iter()
+                .map(|p| (p.current_price * p.quantity))
+                .sum::<f64>(),
             consecutive_losses: portfolio.consecutive_losses,
             is_red_folder_day: false,
             trend_direction: None,
@@ -52,7 +56,7 @@ impl StrategyDecisionAgent {
         let confluence = calculate_confluence_score(&context, &pivots);
         let session    = get_indian_session_info(Utc::now());
 
-        // Pull Kronos forecast from SharedState
+        // Pull Kronos forecast
         let forecast_summary = {
             let last = self.state.last_forecast.read().await;
             match last.as_ref() {
@@ -61,7 +65,7 @@ impl StrategyDecisionAgent {
             }
         };
 
-        // Determine trend label for the prompt
+        // Trend label
         let trend_label = {
             let regime = self.state.market_regime.read().await;
             match *regime {
@@ -77,30 +81,164 @@ impl StrategyDecisionAgent {
             if portfolio.total_equity > 0.0 { total_risk / portfolio.total_equity } else { 0.0 }
         };
         let consecutive_losses = portfolio.consecutive_losses;
-
-        // Release lock before async LLM call
+        let daily_pnl_pct = portfolio.daily_pnl_pct;
+        let total_trades_today = portfolio.total_trades_today;
         drop(portfolio);
         drop(rules);
 
-        // ── Ask the LLM for a trade decision ──────────────────────────────────
+        // ── Gather enriched agentic context ─────────────────────────────────
+        // Calendar events (upcoming high-impact events)
+        let calendar_context = {
+            let events = self.state.calendar_events.read().await;
+            let today_events: Vec<String> = events.iter()
+                .filter(|e| e.is_today() || e.is_upcoming(3))
+                .map(|e| format!("{} [{}] {} — {}", e.title, e.currency, e.date, e.description))
+                .collect();
+            if today_events.is_empty() {
+                "No high-impact economic events today or in the next 3 days.".to_string()
+            } else {
+                today_events.join("\n")
+            }
+        };
+
+        // Trading goals & mode
+        let (trading_mode, daily_goal_context) = {
+            let goals = self.state.trading_goals.read().await;
+            let mode_str = match goals.mode {
+                ates_core::TradingMode::Aggressive => "Aggressive",
+                ates_core::TradingMode::Normal => "Normal",
+                ates_core::TradingMode::Conservative => "Conservative",
+                ates_core::TradingMode::Halted => "HALTED",
+            };
+            let goal = format!(
+                "Daily target: {:+.2}% | Current P&L: {:+.2}% | Trades today: {}/{} | Mode: {}",
+                goals.daily_target_pnl_pct * 100.0,
+                daily_pnl_pct * 100.0,
+                total_trades_today,
+                goals.max_daily_trades,
+                mode_str,
+            );
+            (mode_str.to_string(), goal)
+        };
+
+        // Multi-timeframe context (higher timeframe pivots)
+        let multi_tf_context = {
+            let mtf = self.state.multi_timeframe_data.read().await;
+            match mtf.get(symbol) {
+                Some(tf_data) => {
+                    tf_data.iter().map(|tf| {
+                        let pivot_str = tf.pivots.as_ref()
+                            .map(|p| format!("Pivot={:.2} R1={:.2} S1={:.2}", p.pivot, p.r1, p.s1))
+                            .unwrap_or_else(|| "No pivot data".to_string());
+                        format!("{}: Confluence={:.1}% | {}", tf.timeframe, tf.confluence * 100.0, pivot_str)
+                    }).collect::<Vec<_>>().join("\n")
+                }
+                None => "Higher timeframe data not yet available.".to_string()
+            }
+        };
+
+        // Agent market summary (from reflection)
+        let agent_market_summary = {
+            self.state.agent_market_summary.read().await.clone()
+        };
+
+        // News context (from NewsFetcher, populated by medium loop)
+        let news_context = {
+            let news = self.state.latest_news.read().await;
+            match news.get(symbol) {
+                Some(ctx) => ctx.to_prompt_string(),
+                None => "No recent news for this symbol.".to_string(),
+            }
+        };
+
+        // Candlestick patterns (detected by MarketIntelligenceAgent)
+        let patterns_context = {
+            let pats = self.state.last_patterns.read().await;
+            match pats.get(symbol) {
+                Some(p) if !p.is_empty() => ates_core::format_patterns(p),
+                _ => String::new(),
+            }
+        };
+
+        // Multi-timeframe pattern confirmation (cross-TF validation)
+        let mtf_patterns_context = {
+            let mtf = self.state.last_mtf_patterns.read().await;
+            match mtf.get(symbol) {
+                Some(p) if !p.timeframes_with_patterns.is_empty() => ates_core::format_mtf_confirmation(p),
+                _ => String::new(),
+            }
+        };
+
+        // Combine single-TF and multi-TF pattern context
+        let combined_patterns_context = if !mtf_patterns_context.is_empty() {
+            format!("{}\n\n{}", patterns_context, mtf_patterns_context)
+        } else {
+            patterns_context.clone()
+        };
+
+        // Similar episodes from vector memory (semantic similarity search)
+        let similar_episodes_context = {
+            let vm = self.state.vector_memory.lock().await;
+            if vm.len() > 0 {
+                let query = format!(
+                    "{} {} trend={} confluence={:.1}% price={:.2}",
+                    symbol, trend_label, trend_label, confluence * 100.0, entry
+                );
+                match vm.search(&query, 3, &self.state.llm).await {
+                    Ok(results) if !results.is_empty() => {
+                        let mut lines = vec!["── SIMILAR PAST EPISODES ──".to_string()];
+                        for (i, r) in results.iter().enumerate() {
+                            let regret = r.regret_score
+                                .map(|s| format!(" regret={:.2}", s))
+                                .unwrap_or_default();
+                            lines.push(format!(
+                                "  {}. {} {} (sim: {:.0}%{}) {}",
+                                i + 1, r.symbol,
+                                r.timestamp.format("%m/%d"),
+                                r.similarity * 100.0,
+                                regret,
+                                r.summary_text,
+                            ));
+                        }
+                        lines.join("\n")
+                    }
+                    _ => String::new(),
+                }
+            } else {
+                String::new()
+            }
+        };
+
+        // ── Ask the enriched LLM for a trade decision ────────────────────────
         let decision = self.state.llm.ask_for_trade_decision(
-            symbol, entry, confluence, trend_label,
+            symbol, entry, confluence, &trend_label,
             pivots.pivot, pivots.r1, pivots.s1,
             &forecast_summary,
             portfolio_heat,
             session.market_open,
             consecutive_losses,
+            &calendar_context,
+            &trading_mode,
+            &daily_goal_context,
+            &multi_tf_context,
+            &agent_market_summary,
+            &news_context,
+            &similar_episodes_context,
+            &combined_patterns_context,
         ).await;
 
-        // Store LLM reasoning for debugging / UI
+        // Store LLM reasoning
         {
             let mut reason_store = self.state.last_llm_reason.write().await;
-            *reason_store = format!("[{}] {}: {}", symbol, decision.action, decision.reason);
+            *reason_store = format!("[{}] {} | Mode: {} | Calendar: {} | Reason: {}",
+                symbol, decision.action, trading_mode,
+                if calendar_context.len() > 20 { "loaded" } else { "none" },
+                decision.reason
+            );
         }
 
-        // ── Handle HOLD ────────────────────────────────────────────────────────
         if decision.action == "HOLD" {
-            println!("[StrategyDecision] 🤚 LLM HOLD for {} — {}", symbol, decision.reason);
+            println!("[StrategyDecision] 🤚 LLM HOLD for {} — {} | Mode: {}", symbol, decision.reason, trading_mode);
             return Ok(None);
         }
 
@@ -115,16 +253,20 @@ impl StrategyDecisionAgent {
         let stop_loss   = decision.sl;
         let take_profit = decision.tp;
 
-        // ── Re-validate against discipline rules ───────────────────────────────
+        // ── Re-validate ──────────────────────────────────────────────────────
         let rules2   = self.state.rules.read().await;
         let portfolio2 = self.state.portfolio.read().await;
         let discipline = validate_trade_setup(&context, &rules2);
 
+        // Apply goal-based risk multiplier
+        let goals = self.state.trading_goals.read().await;
+        let risk_mult = goals.effective_risk_multiplier();
         let adjusted_risk = if portfolio2.consecutive_losses >= 2 {
-            rules2.max_risk_per_trade * 0.5
+            rules2.max_risk_per_trade * 0.5 * risk_mult
         } else {
-            rules2.max_risk_per_trade
+            rules2.max_risk_per_trade * risk_mult
         };
+        drop(goals);
 
         let position_size = calculate_position_size(
             portfolio2.total_equity,
@@ -135,14 +277,22 @@ impl StrategyDecisionAgent {
 
         let risk_reward = calculate_risk_reward(entry_price, stop_loss, take_profit, trade_direction);
 
-        let session_info = get_indian_strategy_session_info(Utc::now());
+        let is_crypto = matches!(symbol, "BTC" | "ETH" | "SOL");
+        let session_info = if is_crypto { true } else { get_indian_strategy_session_info(Utc::now()) };
 
-        let confidence = if discipline.passed {
+        // Apply goal-based confidence threshold
+        let goals2 = self.state.trading_goals.read().await;
+        let min_conf = goals2.effective_min_confidence();
+        drop(goals2);
+
+        let confidence = if discipline.passed && confluence >= min_conf {
             let base = confluence;
             let rr_bonus = (risk_reward / 3.0).min(0.2);
             (base + rr_bonus).min(1.0)
+        } else if discipline.passed {
+            confluence * 0.8  // below goal threshold but discipline passes
         } else {
-            confluence * 0.5   // lower confidence when discipline fails but LLM still decided to trade
+            confluence * 0.5
         };
 
         let signal = TradeSignal {
@@ -156,13 +306,10 @@ impl StrategyDecisionAgent {
             confluence_score: confluence,
             risk_reward_ratio: risk_reward,
             reasoning: format!(
-                "LLM[{}]: {} | Confluence: {:.2} | R:R {:.1}:1 | Discipline: {} | Session: {}",
-                decision.action,
-                decision.reason,
-                confluence,
-                risk_reward,
+                "LLM[{}]: {} | Mode: {} | Conf: {:.1}% | R:R {:.1}:1 | Discipline: {}",
+                decision.action, decision.reason, trading_mode,
+                confidence * 100.0, risk_reward,
                 if discipline.passed { "PASS" } else { "FAIL" },
-                if session_info { "OPEN" } else { "CLOSED" },
             ),
             timestamp: Utc::now(),
             session_valid: session_info,
@@ -170,9 +317,9 @@ impl StrategyDecisionAgent {
         };
 
         println!(
-            "[StrategyDecision] 🤖 LLM {} {} @ {:.2} | Confidence: {:.1}% | {}",
+            "[StrategyDecision] 🤖 LLM {} {} @ {:.2} | Mode: {} | Confidence: {:.1}% | {}",
             decision.action, symbol, entry_price,
-            confidence * 100.0, decision.reason
+            trading_mode, confidence * 100.0, decision.reason
         );
 
         // Store signal in history
@@ -182,7 +329,6 @@ impl StrategyDecisionAgent {
             if signals.len() > 100 { signals.remove(0); }
         }
 
-        // Store in memory
         let _ = self.state.memory.store_decision(
             &format!("signal/{}/{}", symbol, Utc::now().timestamp()),
             &signal.reasoning,
@@ -199,7 +345,6 @@ fn get_indian_strategy_session_info(now: chrono::DateTime<Utc>) -> bool {
     let hour = ist.hour();
     let min  = ist.minute();
     let time_mins = hour * 60 + min;
-    // NSE: 9:15 - 15:30 IST
     time_mins >= 9 * 60 + 15 && time_mins <= 15 * 60 + 30
 }
 

@@ -2,6 +2,9 @@ use std::error::Error;
 use ates_core::TradeDirection;
 use crate::types::{TradeSignal, PipelineSummary};
 
+// NOTE: These phase methods are preserved for backward API compatibility.
+// The pipeline now routes through Tredo groups (see tredo.rs) instead.
+#[allow(dead_code)]
 impl crate::orchestrator_struct::AutonomousOrchestrator {
     /// Phase 5: LLM-driven strategy decision.
     /// Returns Option<TradeSignal> — None means LLM decided HOLD.
@@ -38,7 +41,8 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
         Ok(true)
     }
 
-    /// Full autonomous pipeline: price → Kronos → LLM → risk check → execute.
+    /// Full autonomous pipeline: routes through Tredo groups (Identifier → Verifier → Executer).
+    /// Pushes real chain-of-thought entries into SharedState.cot_store.
     pub async fn run_full_pipeline(
         &self,
         symbol: &str,
@@ -49,53 +53,164 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
     ) -> Result<PipelineSummary, Box<dyn Error + Send + Sync>> {
         let start = std::time::Instant::now();
         println!("\n=== ATES AUTONOMOUS PIPELINE for {} ===", symbol);
+        let tredo = self.tredo();
 
-        // Phase 1 — Discipline guards
-        if !self.phase1_discipline_checks().await? {
+        // Start a COT chain for this pipeline run
+        let chain_id = self.state.start_cot_chain(
+            "Orchestrator",
+            &format!("Running full pipeline for {} {} @ {:.2}", symbol,
+                if direction == TradeDirection::Long { "BUY" } else { "SELL" }, entry),
+            "PIPELINE_START",
+            &format!("Starting autonomous pipeline for {}", symbol),
+            1.0,
+        ).await;
+
+        // Phase 0 — Check if there is already an open position on this symbol
+        {
+            let portfolio = self.state.portfolio.read().await;
+            if portfolio.open_positions.iter().any(|pos| pos.symbol == symbol) {
+                self.state.add_cot_step(chain_id,
+                    "Phase0", "Checking existing positions",
+                    "SKIP", &format!("Already have an open position for {}", symbol),
+                    1.0, Some(symbol.to_string()),
+                ).await;
+                return Ok(PipelineSummary {
+                    executed: false,
+                    phase_results: vec![],
+                    total_duration_ms: start.elapsed().as_millis() as u64,
+                    final_signal: None,
+                    reason: format!("Already have an open position for {}", symbol),
+                });
+            }
+        }
+        self.state.add_cot_step(chain_id,
+            "Phase0", "Checking existing positions",
+            "PASS", "No existing position — proceeding",
+            1.0, Some(symbol.to_string()),
+        ).await;
+
+        // ── IDENTIFIER GROUP ─────────────────────────────────────────────────
+        // Runs market analysis + session timer + red folder checks
+        let (discipline_ok, confluence, pivots) = tredo.run_identifier(symbol, entry).await?;
+
+        if !discipline_ok {
+            self.state.add_cot_step(chain_id,
+                "Identifier",
+                &format!("Discipline checks for {}", symbol),
+                "FAIL", "Session timing or red folder check failed",
+                0.1, Some(symbol.to_string()),
+            ).await;
+            self.state.add_cot_step(chain_id,
+                "Decision", "Pipeline aborted",
+                "ABORT", "Discipline checks failed — halting",
+                0.0, Some(symbol.to_string()),
+            ).await;
             return Ok(PipelineSummary {
                 executed: false,
                 phase_results: vec![],
                 total_duration_ms: start.elapsed().as_millis() as u64,
                 final_signal: None,
-                reason: "Discipline checks failed".to_string(),
+                reason: "Discipline checks failed (session/red_folder)".to_string(),
             });
         }
 
-        // Phase 2 — Market analysis + Kronos forecast (stored in SharedState)
-        let (_confluence, _pivots) = self.phase2_market_analysis(symbol, entry).await?;
+        self.state.add_cot_step(chain_id,
+            "Identifier",
+            &format!("Market analysis for {} @ {:.2}", symbol, entry),
+            "ANALYZED",
+            &format!("Confluence: {:.1}%, Pivot: {:.2}, R1: {:.2}, S1: {:.2}, Discipline: OK",
+                confluence * 100.0, pivots.pivot, pivots.r1, pivots.s1),
+            confluence,
+            Some(symbol.to_string()),
+        ).await;
 
-        // Phase 3 — Risk psychology
-        let risk = self.phase3_risk_assessment(symbol, entry).await?;
-        if risk.recommendation == crate::types::RiskRecommendation::Halt {
-            return Ok(PipelineSummary {
-                executed: false,
-                phase_results: vec![],
-                total_duration_ms: start.elapsed().as_millis() as u64,
-                final_signal: None,
-                reason: "Risk psychology: HALT".to_string(),
-            });
-        }
-
-        // Phase 4 — Reflector
-        let _ = self.phase4_reflection(symbol).await?;
-
-        // Phase 5 — LLM trade decision (BUY / SELL / HOLD)
-        let signal_opt = self.phase5_strategy_decision(symbol, direction, entry, stop, target).await?;
-
-        // Phase 6 — Execute (only if LLM said BUY or SELL)
-        let (executed, reason) = if let Some(ref sig) = signal_opt {
-            let ok = self.phase6_portfolio_and_execution(sig).await?;
-            (ok, if ok { "LLM trade executed".to_string() } else { "Execution failed".to_string() })
-        } else {
-            (false, "LLM HOLD — no trade placed".to_string())
+        // ── VERIFIER GROUP ───────────────────────────────────────────────────
+        // Runs drawdown + overtrading checks + risk psychology + reflection
+        let equity = {
+            let portfolio = self.state.portfolio.read().await;
+            portfolio.total_equity
         };
+        let risk = tredo.run_verifier(symbol, entry, equity).await?;
+        let risk_passed = risk.recommendation != crate::types::RiskRecommendation::Halt;
+
+        self.state.add_cot_step(chain_id,
+            "Verifier",
+            &format!("Risk assessment for {}", symbol),
+            if risk_passed { "PASS" } else { "HALT" },
+            &format!("Heat: {:.1}%, DD: {:.1}%, Recommendation: {:?}",
+                risk.portfolio_heat * 100.0, risk.daily_drawdown_pct * 100.0, risk.recommendation),
+            (1.0 - risk.portfolio_heat).max(0.0),
+            Some(symbol.to_string()),
+        ).await;
+
+        if !risk_passed {
+            self.state.add_cot_step(chain_id,
+                "Decision", "Pipeline aborted",
+                "ABORT", "Risk assessment: HALT",
+                0.0, Some(symbol.to_string()),
+            ).await;
+            return Ok(PipelineSummary {
+                executed: false,
+                phase_results: vec![],
+                total_duration_ms: start.elapsed().as_millis() as u64,
+                final_signal: None,
+                reason: "Risk assessment: HALT".to_string(),
+            });
+        }
+
+        // ── EXECUTER GROUP ───────────────────────────────────────────────────
+        // Runs LLM strategy decision + execution + outcome logging
+        let signal_opt = tredo.run_executer(symbol, direction, entry, stop, target).await?;
+
+        match &signal_opt {
+            Some(sig) => {
+                self.state.add_cot_step(chain_id,
+                    "Executer",
+                    &format!("LLM decision for {} @ {:.2}", symbol, entry),
+                    if sig.direction == TradeDirection::Long { "BUY" } else { "SELL" },
+                    &format!("Confidence: {:.1}%, Confluence: {:.1}%, R:R {:.1}:1, Reason: {}",
+                        sig.confidence_score * 100.0, sig.confluence_score * 100.0,
+                        sig.risk_reward_ratio, sig.reasoning.chars().take(60).collect::<String>()),
+                    sig.confidence_score,
+                    Some(symbol.to_string()),
+                ).await;
+            }
+            None => {
+                self.state.add_cot_step(chain_id,
+                    "Executer",
+                    &format!("LLM decision for {} @ {:.2}", symbol, entry),
+                    "HOLD", "LLM decided HOLD — no trade placed",
+                    0.0,
+                    Some(symbol.to_string()),
+                ).await;
+            }
+        }
+
+        let executed = signal_opt.is_some();
+        let exec_reason = if executed { "Tredo trade executed".to_string() } else { "Tredo HOLD — no trade placed".to_string() };
+
+        let total_ms = start.elapsed().as_millis() as u64;
+        let final_action = if executed { "TRADE_EXECUTED" } else { "HOLD" };
+        let final_reason = if executed {
+            format!("✅ Pipeline complete: {} {} @ {:.2} in {}ms",
+                symbol, if direction == TradeDirection::Long { "BUY" } else { "SELL" }, entry, total_ms)
+        } else {
+            format!("Pipeline complete: HOLD for {} in {}ms. {}", symbol, total_ms, exec_reason)
+        };
+        self.state.add_cot_step(chain_id,
+            "Decision", "Pipeline final decision",
+            final_action,
+            &final_reason,
+            if executed { 0.9 } else { 0.5 },
+            Some(symbol.to_string()),
+        ).await;
 
         Ok(PipelineSummary {
             executed,
             phase_results: vec![],
-            total_duration_ms: start.elapsed().as_millis() as u64,
+            total_duration_ms: total_ms,
             final_signal: signal_opt,
-            reason,
+            reason: exec_reason,
         })
     }
 

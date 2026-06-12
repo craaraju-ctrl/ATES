@@ -3,6 +3,20 @@ use serde::{Serialize, Deserialize};
 use ates_core::TradeDirection;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CotEntry {
+    pub id: u64,
+    pub chain_id: u64,
+    pub parent_id: Option<u64>,
+    pub agent: String,
+    pub input: String,
+    pub action: String,
+    pub reason: String,
+    pub confidence: f64,
+    pub timestamp: String,
+    pub symbol: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TradeSignal {
     pub symbol: String,
     pub direction: TradeDirection,

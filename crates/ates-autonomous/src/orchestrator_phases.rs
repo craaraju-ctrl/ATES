@@ -2,6 +2,9 @@ use std::error::Error;
 use chrono::Utc;
 use ates_core::{Agent, PivotLevels};
 
+// NOTE: These phase methods are preserved for backward API compatibility.
+// The pipeline now routes through Tredo groups (see tredo.rs) instead.
+#[allow(dead_code)]
 impl crate::orchestrator_struct::AutonomousOrchestrator {
     pub async fn phase1_discipline_checks(&self) -> Result<bool, Box<dyn Error + Send + Sync>> {
         println!("\n[PHASE 1] Discipline Checks");
@@ -29,6 +32,10 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
 
     pub async fn phase3_risk_assessment(&self, symbol: &str, price: f64) -> Result<crate::types::RiskAnalysis, Box<dyn Error + Send + Sync>> {
         println!("\n[PHASE 3] Risk Assessment");
+        let equity = {
+            let portfolio = self.state.portfolio.read().await;
+            portfolio.total_equity
+        };
         let analysis = self.risk_psych.analyze_risk(&ates_core::MarketContext {
             symbol: symbol.to_string(),
             current_price: price,
@@ -37,6 +44,7 @@ impl crate::orchestrator_struct::AutonomousOrchestrator {
             previous_close: price*0.998,
             timestamp: Utc::now(),
             daily_pnl: 0.0,
+            equity,
             consecutive_losses: 0,
             is_red_folder_day: false,
             trend_direction: None,

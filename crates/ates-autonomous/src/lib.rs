@@ -20,8 +20,14 @@ pub mod backtester;
 pub mod orchestrator_struct;
 pub mod orchestrator_phases;
 pub mod orchestrator_pipeline;
+pub mod scanner;
+pub mod episode_store;
+pub mod outcome_processor;
+pub mod meta_control;
+pub mod tredo;
 
 pub use types::*;
 pub use state::SharedState;
 pub use orchestrator_struct::AutonomousOrchestrator;
 pub use backtester::{AutonomousBacktester, AutonomousBacktestResult};
+pub use tredo::{Tredo, Identifier, Verifier, Executer, Guardian};

@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use std::error::Error;
 use chrono::Utc;
-use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput, LlmExecutor, TradingEpisode, PostTradeReflection};
 use crate::state::SharedState;
 
 pub struct ReflectorAgent {
@@ -13,6 +13,7 @@ impl ReflectorAgent {
         Self { state }
     }
 
+    /// Lightweight daily reflection — reads today's portfolio state.
     pub async fn reflect(&self, symbol: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
         println!("[Reflector] Reflecting on past decisions for {}...", symbol);
 
@@ -35,6 +36,60 @@ impl ReflectorAgent {
 
         let reflection_key = format!("reflections/{}/{}", symbol, Utc::now().timestamp());
         let _ = self.state.memory.store_decision(&reflection_key, &reflection);
+
+        Ok(reflection)
+    }
+
+    /// Deep post-trade reflection — analyses a specific closed trade via the LLM,
+    /// generates a structured PostTradeReflection, stores the episode in memory.
+    pub async fn deep_reflect_on_episode(
+        &self,
+        episode: &TradingEpisode,
+        llm: &LlmExecutor,
+    ) -> Result<PostTradeReflection, Box<dyn Error + Send + Sync>> {
+        println!("[Reflector] 🔬 Deep reflecting on episode {}...", episode.episode_id);
+
+        let episode_summary = format!(
+            "Symbol: {} | Action: {} | Entry: {:.2} | SL: {:.2} | TP: {:.2} | Confidence: {:.1}%\nMarket: price={:.2} trend={} confluence={:.1}% regime={} session={}",
+            episode.symbol, episode.action, episode.entry_price,
+            episode.stop_loss, episode.take_profit,
+            episode.confidence * 100.0,
+            episode.market_state.price, episode.market_state.trend,
+            episode.market_state.confluence * 100.0,
+            episode.market_state.regime, episode.market_state.session_valid,
+        );
+
+        let outcome_summary = match &episode.outcome {
+            Some(o) => format!(
+                "Exit: {:.2} | P&L: ₹{:.2} ({:+.2}%) | Reason: {} | Held: {}s | Max: {:.2} | Min: {:.2}",
+                o.exit_price, o.pnl, o.pnl_pct * 100.0,
+                o.exit_reason, o.holding_period_secs,
+                o.max_unrealized_pnl, o.min_unrealized_pnl,
+            ),
+            None => "Trade still open or no outcome recorded.".to_string(),
+        };
+
+        let reflection = llm.ask_for_reflection(&episode_summary, &outcome_summary).await;
+
+        // Store the reflection in memory alongside the episode
+        if let Ok(json) = serde_json::to_string(&reflection) {
+            let key = format!("reflection/{}", episode.episode_id);
+            let _ = self.state.memory.store_state(&key, &json);
+        }
+
+        // If there's a suggested rule change, store it for the MetaControlAgent
+        if let Some(ref change) = reflection.suggested_rule_change {
+            let key = format!("rule_suggestion/{}", Utc::now().timestamp());
+            let _ = self.state.memory.store_state(&key, change);
+            println!("[Reflector] 💡 Rule change suggestion stored: {}", change);
+        }
+
+        if reflection.should_alert {
+            println!("[Reflector] 🚨 CRITICAL LESSON: {}", reflection.lesson);
+        }
+
+        println!("[Reflector] ✅ Deep reflection complete — regret: {:.2}, lesson: {}",
+            reflection.regret_score, reflection.lesson);
 
         Ok(reflection)
     }

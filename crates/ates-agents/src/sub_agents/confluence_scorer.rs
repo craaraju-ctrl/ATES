@@ -1,23 +1,27 @@
 use async_trait::async_trait;
 use std::error::Error;
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
+use ates_autonomous::SharedState;
 
-use ates_core::{Agent, AgentTier, AgentInput, AgentOutput, calculate_pivot_points, calculate_confluence_score};
+/// Delegates to `ates_autonomous::confluence_scorer::ConfluenceScorerAgent`.
+pub struct ConfluenceScorerAgent {
+    inner: ates_autonomous::confluence_scorer::ConfluenceScorerAgent,
+}
 
-pub struct ConfluenceScorerAgent;
+impl ConfluenceScorerAgent {
+    pub fn new(state: SharedState) -> Self {
+        Self {
+            inner: ates_autonomous::confluence_scorer::ConfluenceScorerAgent::new(state),
+        }
+    }
+}
 
 #[async_trait]
 impl Agent for ConfluenceScorerAgent {
-    fn name(&self) -> &str { "ConfluenceScorerAgent" }
-    fn tier(&self) -> AgentTier { AgentTier::Sub }
+    fn name(&self) -> &str { self.inner.name() }
+    fn tier(&self) -> AgentTier { self.inner.tier() }
 
     async fn run(&self, input: Option<AgentInput>) -> Result<AgentOutput, Box<dyn Error + Send + Sync>> {
-        match input {
-            Some(AgentInput::ConfluenceRequest { context }) => {
-                let pivots = calculate_pivot_points(context.high, context.low, context.previous_close, ates_core::PivotMethod::Classic);
-                let score = calculate_confluence_score(&context, &pivots);
-                Ok(AgentOutput::ConfluenceResult(score))
-            }
-            _ => Ok(AgentOutput::NoOutput),
-        }
+        self.inner.run(input).await
     }
 }

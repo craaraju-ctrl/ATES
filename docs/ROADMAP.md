@@ -1,56 +1,274 @@
-# ATES Development Roadmap
+# 🗺️ ATES Development Roadmap
 
-**From Foundation to Production**
+> **From Foundation to Production** — A structured journey building a professional-grade autonomous trading system.
 
-## Phase 1: Foundation (Completed)
+---
 
-- [x] Create new clean Rust repository
-- [x] Define low-resource architecture
-- [x] Implement Disciplined Core in Rust
-- [x] Set up Rust workspace structure
-- [x] Create basic async Orchestrator
+## 📈 Overall Progress
 
-## Phase 2: Core Intelligence (Completed)
+```mermaid
+gantt
+    title ATES Development Timeline
+    dateFormat  YYYY-MM-DD
+    axisFormat  %Y Q%q
+    
+    section Foundation
+    Core Architecture & Disciplined Core    :done, f1, 2024-01-01, 2024-03-15
+    Rust Workspace & Orchestrator          :done, f2, 2024-02-01, 2024-04-01
+    
+    section Intelligence
+    Two-Tier Agent System                  :done, i1, 2024-03-15, 2024-05-15
+    Memory & Message Passing               :done, i2, 2024-04-01, 2024-06-01
+    
+    section Trading Agents
+    Risk Manager & Reflector               :done, t1, 2024-05-15, 2024-07-15
+    Market Intel & Portfolio Manager       :done, t2, 2024-06-01, 2024-08-15
+    Execution Coordinator                  :done, t3, 2024-07-01, 2024-09-01
+    
+    section UI & Observability
+    Tauri Desktop UI                       :done, u1, 2024-08-01, 2024-10-15
+    Chain-of-Thought Tree View             :done, u2, 2024-09-01, 2024-11-01
+    
+    section Validation
+    Backtesting Engine                     :done, v1, 2024-10-01, 2024-11-15
+    Broker Adapter Stubs                   :done, v2, 2024-11-01, 2024-12-15
+    
+    section Production
+    Docker Deployment                      :done, p1, 2024-12-01, 2025-01-15
+    Episodic Memory & Learning             :done, p2, 2025-01-01, 2025-03-01
+    
+    section Evolution (Current)
+    Multi-TF Pattern Confirmation          :done, e1, 2025-03-01, 2025-04-01
+    Real Rust COT Backend Wiring           :done, e2, 2025-04-01, 2025-05-01
+    Live Dashboard COT Cards               :done, e3, 2025-05-01, 2025-06-01
+    
+    section Phase C (Planned)
+    Multi-Agent Debate Pipeline            :active, c1, 2025-06-01, 2025-08-01
+    Proposer/Critic/Risk/Historian         :active, c2, 2025-07-01, 2025-09-01
+```
 
-- [x] Implement full Disciplined Core with all trading rules
-- [x] Build Two-Tier Agent system (Main Agents + Sub-Agents)
-- [x] Add Memory system using embedded KV store (`redb`)
-- [x] Create async message passing between agents
+---
 
-## Phase 3: Trading Agents (Completed)
+## ✅ Phase 1: Foundation — Complete
 
-- [x] Risk Manager Agent (Rust)
-- [x] Reflector / Critic Agent
-- [x] Market Intelligence Agent (Hybrid / Kronos forecast integrated)
-- [x] Portfolio Manager Agent (with Short & Long accounting)
-- [x] Execution Agent (with paper trading validation)
+> Building the core infrastructure and non-negotiable trading rules.
 
-## Phase 4: Observability & Control (Completed)
+```
+██████████████████████████████████████████████████ 100%
+```
 
-- [x] Native Desktop UI (Tauri + Rust frontend controls)
-- [x] Custom Orchestra cycle triggers and logs
-- [x] Health checks & automated status monitoring
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Clean Rust repository | ✅ Done | Workspace with `ates-core`, `ates-autonomous`, `ates-orchestrator` crates |
+| Low-resource architecture | ✅ Done | 8GB RAM optimized, minimal LLM dependency |
+| Disciplined Core in Rust | ✅ Done | Pivots, confluence, risk limits, session timing |
+| Async Orchestrator | ✅ Done | Tokio-based orchestration with Fast/Medium/Slow loops |
 
-## Phase 5: Backtesting & Validation (Completed)
+```mermaid
+flowchart LR
+    A[Create Repo] --> B[Define Architecture]
+    B --> C[Disciplined Core]
+    C --> D[Async Orchestrator]
+    D --> E[✅ Foundation Complete]
+```
 
-- [x] Historical simulation backtester
-- [x] Performance metrics output (Win rate, P&L, Max Drawdown)
+---
 
-## Phase 6: Execution & Safety (Completed)
+## ✅ Phase 2: Core Intelligence — Complete
 
-- [x] Zerodha/Kite broker adapter stubbing
-- [x] Multi-layer risk checks & margin enforcement
-- [x] Trading kill switches and drawdown circuit breakers
+> Implementing the two-tier agent architecture and memory system.
 
-## Phase 7: Production (Completed)
+```
+██████████████████████████████████████████████████ 100%
+```
 
-- [x] Optimized Docker deployment (Dockerfile implemented)
-- [x] Resource optimization for 8GB RAM
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Full Disciplined Core | ✅ Done | All trading rules encoded in Rust |
+| Two-Tier Agent System | ✅ Done | 7 Main Agents + 8 Sub-Agents |
+| Memory System (redb) | ✅ Done | Embedded KV store for decisions and episodes |
+| Async Message Passing | ✅ Done | Agent communication via Arc<RwLock> + tokio |
 
-## Phase 8: Evolution (Completed)
+---
 
-- [x] Outcome logging from trade outcomes to `redb`
-- [x] Self-reflection and learning cycles via Reflector agent
-- [x] Periodic strategy reviews and parameter adjustments
+## ✅ Phase 3: Trading Agents — Complete
 
-**Goal**: A stable, low-resource, high-discipline autonomous trading system that feels like a professional trading team.
+> Building specialized agent personalities for each trading function.
+
+```
+██████████████████████████████████████████████████ 100%
+```
+
+```mermaid
+graph LR
+    subgraph "Agent Ecosystem"
+        MI[MarketIntelligence]
+        SD[StrategyDecision]
+        RP[RiskPsychology]
+        REF[Reflector]
+        PM[PortfolioManager]
+        EXEC[ExecutionCoordinator]
+    end
+    
+    KRON[Kronos Forecast] --> MI
+    MI --> SD
+    SD -->|BUY/SELL/HOLD| EXEC
+    EXEC --> PM
+    RP --> SD
+    REF --> SD
+```
+
+| Agent | Status | Key Capabilities |
+|-------|--------|------------------|
+| Market Intelligence | ✅ Done | Kronos forecast, pivot/confluence, pattern detection, multi-TF |
+| Strategy Decision | ✅ Done | LLM-driven signal generation with enriched context |
+| Risk Psychology | ✅ Done | Portfolio heat, drawdown, consecutive loss checks |
+| Reflector | ✅ Done | Post-trade analysis, lesson extraction, regret scoring |
+| Portfolio Manager | ✅ Done | LONG/SHORT accounting, position sizing |
+| Execution Coordinator | ✅ Done | Paper trading, SL/TP auto-exit |
+
+---
+
+## ✅ Phase 4: Observability & Control — Complete
+
+> Building the desktop UI for real-time monitoring and control.
+
+```
+██████████████████████████████████████████████████ 100%
+```
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Tauri Desktop UI | ✅ Done | 5-page SPA: Dashboard, Trading, AI Results, Analysis, Settings |
+| Chain-of-Thought Tree | ✅ Done | Hierarchical reasoning tree with expand/collapse |
+| Real-time COT Updates | ✅ Done | 3-second polling from Rust backend via Tauri IPC |
+| Live Dashboard Card | ✅ Done | Latest AI decision card with real-time updates |
+
+---
+
+## ✅ Phase 5: Backtesting & Validation — Complete
+
+> Validating the system against historical data.
+
+```
+██████████████████████████████████████████████████ 100%
+```
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Historical Simulation | ✅ Done | 50-cycle backtester with OHLCV data |
+| Performance Metrics | ✅ Done | Win rate, P&L, max drawdown, Sharpe ratio |
+
+---
+
+## ✅ Phase 6: Execution & Safety — Complete
+
+> Adding safety layers and broker integration stubs.
+
+```
+██████████████████████████████████████████████████ 100%
+```
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Broker Adapter Stubs | ✅ Done | Kite/Zerodha dummy keys |
+| Multi-Layer Risk Checks | ✅ Done | Position size, drawdown, heat, consecutive losses |
+| Kill Switches | ✅ Done | Circuit breakers at agent and system level |
+
+---
+
+## ✅ Phase 7: Production — Complete
+
+> Optimizing for production deployment.
+
+```
+██████████████████████████████████████████████████ 100%
+```
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Docker Deployment | ✅ Done | Multi-stage Dockerfile for 8GB RAM |
+| Resource Optimization | ✅ Done | Compiled binary, no runtime deps beyond Ollama |
+
+---
+
+## ✅ Phase 8: Evolution (Current) — Complete
+
+> Adding self-learning, pattern detection, and live UI integration.
+
+```
+██████████████████████████████████████████████████ 100%
+```
+
+```mermaid
+flowchart LR
+    A[Episodic Memory] --> B[Vector Similarity]
+    B --> C[Pattern Detection]
+    C --> D[Multi-TF Confirmation]
+    D --> E[COT Backend Wiring]
+    E --> F[Live Dashboard Card]
+    F --> G[✅ Evolution Complete]
+```
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Outcome Logging | ✅ Done | Structured episodes stored in redb |
+| Self-Reflection | ✅ Done | Reflector agent with regret scoring |
+| Meta-Control | ✅ Done | Weekly rule adjustment via LLM |
+| Multi-TF Patterns | ✅ Done | 15 detectors across 4 timeframes |
+| Real COT Backend | ✅ Done | Rust agents push to tree view via Tauri IPC |
+| Live Dashboard Card | ✅ Done | Most recent AI decision shown on dashboard |
+
+---
+
+## 🔮 Phase C: Multi-Agent Debate — Planned
+
+> Adding multi-agent debate pipeline for more robust decision-making.
+
+```
+████░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░ 15%
+```
+
+| Milestone | Status | Description |
+|-----------|--------|-------------|
+| Debate Coordinator | 🏗️ In Progress | Conducts debate between 4 agents |
+| Proposer Agent | 📝 Planned | Suggests trade with reasoning |
+| Critic Agent | 📝 Planned | Challenges with counterfactuals |
+| Risk Agent | 📝 Planned | Hard constraint checker |
+| Historian Agent | 📝 Planned | Similar episode retrieval |
+| Aggregator | 📝 Planned | Reconcilies conflicting outputs |
+
+### Debate Pipeline Architecture
+
+```mermaid
+flowchart TB
+    INPUT[Market Context\n+ Forecast + News] --> PRO[Proposer Agent]
+    INPUT --> CRT[Critic Agent]
+    INPUT --> RSK[Risk Agent]
+    INPUT --> HIST[Historian Agent]
+    
+    PRO -->|Trade Proposal| AGG[Aggregator]
+    CRT -->|Challenges| AGG
+    RSK -->|Constraint Check| AGG
+    HIST -->|Past Outcomes| AGG
+    
+    AGG -->|Reconciled Signal| OUT[Final Trade Decision]
+```
+
+---
+
+## 📊 Summary
+
+| Phase | Status | Key Deliverables | Timeline |
+|-------|--------|-----------------|----------|
+| 1: Foundation | ✅ Complete | Rust workspace, Disciplined Core, Async Orchestrator | Q1 2024 |
+| 2: Core Intelligence | ✅ Complete | Two-Tier Agents, Memory, Message Passing | Q2 2024 |
+| 3: Trading Agents | ✅ Complete | 7 Main Agents + 8 Sub-Agents with LLM integration | Q3 2024 |
+| 4: Observability | ✅ Complete | Tauri Desktop UI, COT Tree View | Q4 2024 |
+| 5: Validation | ✅ Complete | Backtesting Engine, Performance Metrics | Q4 2024 |
+| 6: Safety | ✅ Complete | Broker Adapters, Kill Switches | Q1 2025 |
+| 7: Production | ✅ Complete | Docker Deployment, 8GB RAM Optimization | Q1 2025 |
+| 8: Evolution | ✅ Complete | Episodic Memory, Patterns, Live COT UI | Q2 2025 |
+| C: Debate | 🏗️ In Progress | Multi-Agent Debate Pipeline | Q3 2025 |
+
+> **Goal:** A stable, low-resource, high-discipline autonomous trading system that feels like a professional trading team.

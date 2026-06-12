@@ -7,375 +7,705 @@
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;500;700&family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
-  <div class="binance-app">
-    
-    <!-- Top Navigation Bar -->
-    <header class="binance-navbar">
-      <div class="nav-left">
-        <div class="brand">
-          <span class="brand-logo">⚡</span>
-          <span class="brand-text">ATES</span>
-        </div>
-        <div class="market-ticker">
-          <span class="ticker-symbol" id="ticker-name">NIFTY / INR</span>
-          <div class="ticker-item">
-            <span class="ticker-label">Last Price</span>
-            <span class="ticker-val success" id="ticker-price">₹24,500.00</span>
-          </div>
-          <div class="ticker-item">
-            <span class="ticker-label">24h Change</span>
-            <span class="ticker-val success" id="ticker-change">+1.24%</span>
-          </div>
-          <div class="ticker-item">
-            <span class="ticker-label">24h High</span>
-            <span class="ticker-val" id="ticker-high">₹24,580.00</span>
-          </div>
-          <div class="ticker-item">
-            <span class="ticker-label">24h Low</span>
-            <span class="ticker-val" id="ticker-low">₹24,450.00</span>
-          </div>
-        </div>
+<div id="app" class="app-container">
+
+  <!-- ═══════════════════════════════════════════════════════
+       TOP NAVBAR
+       ═══════════════════════════════════════════════════════ -->
+  <header class="app-topbar">
+    <div class="topbar-left">
+      <div class="brand">
+        <span class="brand-logo">⚡</span>
+        <span class="brand-text">ATES</span>
+        <span class="brand-version">v2.0</span>
       </div>
-      <div class="nav-right">
-        <div class="balance-container">
-          <span class="bal-label">Margin Balance:</span>
-          <span class="bal-val" id="margin-balance">₹100,000.00</span>
+      <div class="page-title" id="page-title">Dashboard</div>
+    </div>
+    <div class="topbar-center">
+      <div class="mini-ticker" id="mini-ticker">
+        <span class="ticker-name" id="ticker-name">NIFTY</span>
+        <span class="ticker-price" id="ticker-price">24,500.00</span>
+        <span class="ticker-change success" id="ticker-change">+1.24%</span>
+        <span class="ticker-sep"></span>
+        <span class="ticker-label">24h H:</span><span class="ticker-val" id="ticker-high">24,580</span>
+        <span class="ticker-label">L:</span><span class="ticker-val" id="ticker-low">24,450</span>
+        <span class="ticker-label">Vol:</span><span class="ticker-val" id="ticker-vol">2.4M</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="balance-badge">
+        <i class="fas fa-wallet"></i>
+        <span class="bal-label">Balance</span>
+        <span class="bal-val" id="margin-balance">₹100,000.00</span>
+      </div>
+      <span id="brk-badge" class="brk-badge paper">📄 PAPER</span>
+      <button id="btn-run" class="run-btn stopped" onclick="ATES.System.toggle()">
+        <span class="run-dot"></span>
+        <span class="run-label">RUN SYSTEM</span>
+      </button>
+      <div class="status-indicator">
+        <span class="status-dot online" id="status-dot"></span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════
+       STATUS RIBBON
+       ═══════════════════════════════════════════════════════ -->
+  <div class="status-ribbon" id="status-ribbon">
+    <div class="ribbon-item" id="ribbon-kronos"><span class="rdot off"></span><span class="rlabel">KRONOS</span><span class="rstate">OFFLINE</span></div>
+    <div class="ribbon-item" id="ribbon-orch"><span class="rdot off"></span><span class="rlabel">ORCHESTRATOR</span><span class="rstate">OFFLINE</span></div>
+    <div class="ribbon-item" id="ribbon-llm"><span class="rdot off"></span><span class="rlabel">LLM</span><span class="rstate">STANDBY</span></div>
+    <div class="ribbon-div"></div>
+    <div class="ribbon-stat"><span class="rsl">POSITIONS</span><span class="rsv" id="ribbon-pos-count">0</span></div>
+    <div class="ribbon-stat"><span class="rsl">TODAY P&L</span><span class="rsv" id="ribbon-pnl-val">₹0.00</span></div>
+    <div class="ribbon-stat"><span class="rsl">TRADES</span><span class="rsv" id="ribbon-trades">0</span></div>
+    <div class="ribbon-stat"><span class="rsl">WIN RATE</span><span class="rsv" id="ribbon-winrate">—</span></div>
+    <div class="ribbon-stat"><span class="rsl">MODE</span><span class="rsv" id="ribbon-mode">Normal</span></div>
+    <div class="ribbon-stat"><span class="rsl">CYCLE</span><span class="rsv" id="ribbon-cycle">#0</span></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MAIN LAYOUT: Sidebar + Content
+       ═══════════════════════════════════════════════════════ -->
+  <div class="app-body">
+
+    <!-- LEFT SIDEBAR NAV -->
+    <nav class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-nav">
+        <button class="nav-btn active" data-page="dashboard" onclick="ATES.Router.go('dashboard')">
+          <i class="fas fa-th-large"></i><span>Dashboard</span>
+        </button>
+        <button class="nav-btn" data-page="trading" onclick="ATES.Router.go('trading')">
+          <i class="fas fa-chart-line"></i><span>Trading</span>
+        </button>
+        <button class="nav-btn" data-page="ai-results" onclick="ATES.Router.go('ai-results')">
+          <i class="fas fa-robot"></i><span>AI Results</span>
+        </button>
+        <button class="nav-btn" data-page="analysis" onclick="ATES.Router.go('analysis')">
+          <i class="fas fa-search"></i><span>Analysis</span>
+        </button>
+        <button class="nav-btn" data-page="settings" onclick="ATES.Router.go('settings')">
+          <i class="fas fa-cog"></i><span>Settings</span>
+        </button>
+      </div>
+      <div class="sidebar-footer">
+        <span class="sidebar-status online"></span>
+        <span class="sidebar-ver">ATES v2.0</span>
+      </div>
+    </nav>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="app-content" id="app-content">
+
+      <!-- ══════════════════════════════════════════════════
+           PAGE: DASHBOARD
+           ══════════════════════════════════════════════════ -->
+      <div class="page active" id="page-dashboard">
+        <div class="page-header">
+          <h1>Dashboard</h1>
+          <p class="page-subtitle">Portfolio overview & system health</p>
         </div>
 
-        <!-- ── RUN SYSTEM BUTTON ── -->
-        <div class="run-system-wrap">
-          <button id="btn-run" class="run-btn stopped" onclick="runSystemToggle()">
-            <span class="run-btn-pulse"></span>
-            <span class="run-btn-icon">▶</span>
-            <span class="run-btn-label">RUN SYSTEM</span>
-          </button>
-        </div>
-
-        <div class="system-status-indicator">
-          <div class="status-dot success" id="status-dot"></div>
-          <span id="status-text">Core Online</span>
-        </div>
-      </div>
-    </header>
-
-    <!-- ── System Status Ribbon ── -->
-    <div class="sys-ribbon" id="sys-ribbon">
-      <div class="ribbon-svc" id="ribbon-kronos">
-        <span class="ribbon-dot off"></span>
-        <span class="ribbon-name">KRONOS</span>
-        <span class="ribbon-state">OFFLINE</span>
-      </div>
-      <div class="ribbon-svc" id="ribbon-orch">
-        <span class="ribbon-dot off"></span>
-        <span class="ribbon-name">ORCHESTRATOR</span>
-        <span class="ribbon-state">OFFLINE</span>
-      </div>
-      <div class="ribbon-svc" id="ribbon-llm">
-        <span class="ribbon-dot off"></span>
-        <span class="ribbon-name">LLM (ministral-3)</span>
-        <span class="ribbon-state">STANDBY</span>
-      </div>
-      <div class="ribbon-divider"></div>
-      <div class="ribbon-stat" id="ribbon-positions">
-        <span class="ribbon-stat-label">POSITIONS</span>
-        <span class="ribbon-stat-val" id="ribbon-pos-count">—</span>
-      </div>
-      <div class="ribbon-stat" id="ribbon-pnl">
-        <span class="ribbon-stat-label">TODAY P&L</span>
-        <span class="ribbon-stat-val" id="ribbon-pnl-val">—</span>
-      </div>
-      <div class="ribbon-stat">
-        <span class="ribbon-stat-label">CYCLE</span>
-        <span class="ribbon-stat-val" id="ribbon-cycle">—</span>
-      </div>
-    </div><!-- /.sys-ribbon -->
-
-    <!-- Main Grid Workspace -->
-    <div class="binance-workspace">
-      
-      <!-- Left Sidebar: Watchlist / Markets -->
-      <aside class="watchlist-panel">
-        <div class="panel-header">
-          <h4>Watchlist Markets</h4>
-        </div>
-        <div class="watchlist-tabs">
-          <button class="wl-tab active" data-type="all">ALL</button>
-          <button class="wl-tab" data-type="stocks">STOCKS</button>
-          <button class="wl-tab" data-type="crypto">CRYPTO</button>
-        </div>
-        <div class="watchlist-body">
-          <div class="wl-header">
-            <span>Symbol</span>
-            <span>Price</span>
-            <span>24h Change</span>
+        <!-- Portfolio Summary Cards -->
+        <div class="dash-grid">
+          <div class="stat-card primary">
+            <div class="stat-icon"><i class="fas fa-coins"></i></div>
+            <div class="stat-body">
+              <span class="stat-label">Total Equity</span>
+              <span class="stat-value" id="dash-equity">₹100,000.00</span>
+              <span class="stat-change success" id="dash-equity-change">+0.00%</span>
+            </div>
           </div>
-          <div class="wl-list" id="watchlist-list">
-            <!-- Dynamically populated by JS -->
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div>
+            <div class="stat-body">
+              <span class="stat-label">Cash Balance</span>
+              <span class="stat-value" id="dash-cash">₹100,000.00</span>
+              <span class="stat-detail">Available for trading</span>
+            </div>
           </div>
-        </div>
-      </aside>
-
-      <!-- Center Pane: Controls, Logs, and System Dashboard -->
-      <section class="center-trading-pane">
-        
-        <!-- TradingView Chart Panel -->
-        <div class="chart-panel">
-          <div id="tradingview-chart-container" style="width: 100%; height: 100%; position: relative;">
-            <canvas id="fallback-chart-canvas" style="width: 100%; height: 100%; display: none;"></canvas>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+            <div class="stat-body">
+              <span class="stat-label">Open Positions</span>
+              <span class="stat-value" id="dash-positions">0</span>
+              <span class="stat-detail" id="dash-positions-detail">No active trades</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><i class="fas fa-percentage"></i></div>
+            <div class="stat-body">
+              <span class="stat-label">Win Rate</span>
+              <span class="stat-value" id="dash-winrate">—</span>
+              <span class="stat-detail">All-time performance</span>
+            </div>
           </div>
         </div>
 
-        <!-- Bottom Tab Panel -->
-        <div class="bottom-tab-panel">
-          <div class="trading-tabs">
-            <button class="tab-btn active" data-pane="positions">Positions & Margin Holdings</button>
-            <button class="tab-btn" data-pane="pivots">Pivot Levels</button>
-            <button class="tab-btn" data-pane="console">Market Intelligence Logs</button>
-            <button class="tab-btn" data-pane="inspector">Disciplined Inspector</button>
-            <button class="tab-btn" data-pane="backtester">Simulation Backtester</button>
+        <!-- Middle Row: P&L Chart + System Health -->
+        <div class="dash-row">
+          <div class="dash-panel wide">
+            <div class="panel-head">
+              <h3><i class="fas fa-wave-square"></i> Portfolio P&L</h3>
+              <div class="panel-actions">
+                <span class="pill-switch" id="pnl-period">
+                  <span class="pill-opt active" data-period="1d">1D</span>
+                  <span class="pill-opt" data-period="1w">1W</span>
+                  <span class="pill-opt" data-period="1m">1M</span>
+                </span>
+              </div>
+            </div>
+            <div class="panel-body">
+              <canvas id="pnl-chart-canvas" class="dash-chart-canvas"></canvas>
+            </div>
           </div>
+          <div class="dash-panel">
+            <div class="panel-head">
+              <h3><i class="fas fa-heartbeat"></i> System Health</h3>
+            </div>
+            <div class="panel-body">
+              <div class="health-list">
+                <div class="health-item"><span class="h-name">Kronos Service</span><span class="h-status ok" id="h-kronos"><i class="fas fa-check-circle"></i> Running</span></div>
+                <div class="health-item"><span class="h-name">Ollama LLM</span><span class="h-status ok" id="h-llm"><i class="fas fa-check-circle"></i> Connected</span></div>
+                <div class="health-item"><span class="h-name">Orchestrator</span><span class="h-status warn" id="h-orch"><i class="fas fa-clock"></i> Standby</span></div>
+                <div class="health-item"><span class="h-name">WebSocket Stream</span><span class="h-status ok" id="h-ws"><i class="fas fa-check-circle"></i> Live</span></div>
+                <div class="health-item"><span class="h-name">Yahoo Finance</span><span class="h-status ok" id="h-yahoo"><i class="fas fa-check-circle"></i> Connected</span></div>
+                <div class="health-item"><span class="h-name">Database (redb)</span><span class="h-status ok" id="h-db"><i class="fas fa-check-circle"></i> Synced</span></div>
+                <div class="health-item"><span class="h-name">Vector Memory</span><span class="h-status" id="h-vector"><i class="fas fa-database"></i> <span id="h-vector-count">0</span> episodes</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-          <div class="tab-content-area">
-            
-            <!-- Positions view -->
-            <div id="pane-positions" class="pane-view active">
-              <div class="positions-table-wrapper">
+        <!-- Bottom Row: Recent Trades + Quick Stats -->
+        <div class="dash-row">
+          <div class="dash-panel wide">
+            <div class="panel-head">
+              <h3><i class="fas fa-receipt"></i> Recent Trades</h3>
+            </div>
+            <div class="panel-body p-0">
+              <table class="dash-table" id="dash-trades-table">
+                <thead><tr><th>Time</th><th>Symbol</th><th>Direction</th><th>Entry</th><th>Exit</th><th>P&L</th><th>R:R</th><th>Lesson</th></tr></thead>
+                <tbody id="dash-trades-body">
+                  <tr><td colspan="8" class="empty-state">No trades executed yet. Start the system or place a trade.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div class="dash-right-col">
+            <div class="dash-panel">
+              <div class="panel-head">
+                <h3><i class="fas fa-bolt"></i> Quick Stats</h3>
+              </div>
+              <div class="panel-body stats-grid">
+                <div class="qs-item"><span class="qs-label">Trading Mode</span><span class="qs-val" id="qs-mode">Normal</span></div>
+                <div class="qs-item"><span class="qs-label">Daily Target</span><span class="qs-val success" id="qs-target">+0.50%</span></div>
+                <div class="qs-item"><span class="qs-label">Daily P&L</span><span class="qs-val" id="qs-dailypnl">₹0.00</span></div>
+                <div class="qs-item"><span class="qs-label">Consecutive Losses</span><span class="qs-val" id="qs-conloss">0</span></div>
+                <div class="qs-item"><span class="qs-label">Portfolio Heat</span><span class="qs-val" id="qs-heat">0%</span></div>
+                <div class="qs-item"><span class="qs-label">Max Drawdown</span><span class="qs-val" id="qs-dd">0.00%</span></div>
+                <div class="qs-item"><span class="qs-label">Trades Today</span><span class="qs-val" id="qs-trades">0</span></div>
+                <div class="qs-item"><span class="qs-label">Market Regime</span><span class="qs-val" id="qs-regime">Neutral</span></div>
+              </div>
+            </div>
+            <!-- Auto-Pilot Status Card -->
+            <div class="dash-panel" id="autopilot-panel">
+              <div class="panel-head">
+                <h3><i class="fas fa-robot"></i> Auto-Pilot</h3>
+                <div class="panel-actions">
+                  <span class="live-dot"></span>
+                  <span class="live-label" id="ap-status">active</span>
+                </div>
+              </div>
+              <div class="panel-body autopilot-body" id="autopilot-status">
+                <div class="ap-loading">Running auto-pilot engine...</div>
+              </div>
+            </div>
+            <!-- Live COT Notification Card -->
+            <div class="dash-panel cot-live-card" id="cot-live-card">
+              <div class="panel-head">
+                <h3><i class="fas fa-brain"></i> Latest AI Decision</h3>
+                <div class="panel-actions">
+                  <span class="live-dot"></span>
+                  <span class="live-label" id="cot-live-age">waiting</span>
+                </div>
+              </div>
+              <div class="panel-body cot-live-body" id="cot-live-body">
+                <div class="cot-live-empty">
+                  <i class="fas fa-microchip"></i>
+                  <span>Awaiting agent decisions...</span>
+                  <span class="cot-empty-sub">Run the system or trigger a cycle to see live reasoning.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           PAGE: TRADING
+           ══════════════════════════════════════════════════ -->
+      <div class="page" id="page-trading">
+        <div class="page-header">
+          <h1>Trading</h1>
+          <p class="page-subtitle">Live chart, positions & order execution</p>
+        </div>
+
+        <div class="trading-workspace">
+          <!-- Left: Chart + Tabs -->
+          <div class="tw-left">
+            <div class="tw-watchlist" id="watchlist-list"></div>
+            <div class="chart-container">
+              <div id="tradingview-chart-container" class="chart-inner">
+                <canvas id="fallback-chart-canvas" class="chart-canvas"></canvas>
+              </div>
+            </div>
+            <div class="tw-tabs-bar">
+              <button class="tw-tab active" data-pane="positions"><i class="fas fa-briefcase"></i> Positions</button>
+              <button class="tw-tab" data-pane="pivots"><i class="fas fa-layer-group"></i> Pivots</button>
+              <button class="tw-tab" data-pane="console"><i class="fas fa-terminal"></i> Console</button>
+              <button class="tw-tab" data-pane="discipline"><i class="fas fa-shield-alt"></i> Discipline</button>
+              <button class="tw-tab" data-pane="backtest"><i class="fas fa-flask"></i> Backtest</button>
+              <button class="tw-tab" data-pane="agents"><i class="fas fa-sitemap"></i> Agents</button>
+            </div>
+            <div class="tw-panes">
+              <!-- Positions Pane -->
+              <div class="tw-pane active" id="tpane-positions">
                 <table class="pro-table">
-                  <thead>
-                    <tr>
-                      <th>Symbol</th>
-                      <th>Direction</th>
-                      <th>Quantity</th>
-                      <th>Entry Price</th>
-                      <th>Mark Price</th>
-                      <th>Unrealized PNL</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="positions-table-body">
-                    <tr class="no-data">
-                      <td colspan="7">No open positions. Execute an order in the ticket pane.</td>
-                    </tr>
-                  </tbody>
+                  <thead><tr><th>Symbol</th><th>Dir</th><th>Qty</th><th>Entry</th><th>Mark</th><th>Unrealized P&L</th><th>Action</th></tr></thead>
+                  <tbody id="positions-table-body"><tr class="no-data"><td colspan="7">No open positions.</td></tr></tbody>
                 </table>
               </div>
-            </div>
-
-            <!-- Pivot Levels Order Book view -->
-            <div id="pane-pivots" class="pane-view">
-              <div class="order-book-table" style="max-width: 450px; border: 1px solid var(--border-color); border-radius: 4px; padding: 10px; background-color: rgba(0,0,0,0.15);">
-                <div class="ob-header" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; margin-bottom: 6px;">
-                  <span>Level</span>
-                  <span style="text-align: right;">Price</span>
-                  <span style="text-align: right;">Distance</span>
-                </div>
-                <div class="ob-list asks" id="ob-asks">
-                  <div class="ob-row" data-target="tp" data-val-id="val-r3" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
-                    <span class="lbl danger">R3 (Target 3)</span>
-                    <span id="val-r3" style="text-align: right;">24,725.00</span>
-                    <span id="dist-r3" style="text-align: right;">+0.92%</span>
+              <!-- Pivots Pane -->
+              <div class="tw-pane" id="tpane-pivots">
+                <div class="pivot-book" id="pivot-book">
+                  <div class="pb-header"><span>Level</span><span>Price</span><span>Distance</span></div>
+                  <div class="pb-asks" id="pb-asks">
+                    <div class="pb-row" data-target="tp" data-id="r3"><span class="lbl danger">R3</span><span id="pv-r3">—</span><span id="pd-r3">—</span></div>
+                    <div class="pb-row" data-target="tp" data-id="r2"><span class="lbl danger">R2</span><span id="pv-r2">—</span><span id="pd-r2">—</span></div>
+                    <div class="pb-row" data-target="tp" data-id="r1"><span class="lbl danger">R1</span><span id="pv-r1">—</span><span id="pd-r1">—</span></div>
                   </div>
-                  <div class="ob-row" data-target="tp" data-val-id="val-r2" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
-                    <span class="lbl danger">R2 (Target 2)</span>
-                    <span id="val-r2" style="text-align: right;">24,650.00</span>
-                    <span id="dist-r2" style="text-align: right;">+0.61%</span>
-                  </div>
-                  <div class="ob-row" data-target="tp" data-val-id="val-r1" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
-                    <span class="lbl danger">R1 (Target 1)</span>
-                    <span id="val-r1" style="text-align: right;">24,575.00</span>
-                    <span id="dist-r1" style="text-align: right;">+0.31%</span>
-                  </div>
-                </div>
-                <div class="ob-spread" data-target="entry" data-val-id="val-pivot" style="cursor: pointer; display: flex; justify-content: space-between; padding: 6px 8px; margin: 8px 0; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: 4px;">
-                  <span class="spread-price success" id="ob-current-spot">24,500.00</span>
-                  <span class="spread-label">Pivot: <span id="val-pivot">24,500.00</span></span>
-                </div>
-                <div class="ob-list bids" id="ob-bids">
-                  <div class="ob-row" data-target="sl" data-val-id="val-s1" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
-                    <span class="lbl success">S1 (Support 1)</span>
-                    <span id="val-s1" style="text-align: right;">24,425.00</span>
-                    <span id="dist-s1" style="text-align: right;">-0.31%</span>
-                  </div>
-                  <div class="ob-row" data-target="sl" data-val-id="val-s2" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
-                    <span class="lbl success">S2 (Support 2)</span>
-                    <span id="val-s2" style="text-align: right;">24,350.00</span>
-                    <span id="dist-s2" style="text-align: right;">-0.61%</span>
-                  </div>
-                  <div class="ob-row" data-target="sl" data-val-id="val-s3" style="display: grid; grid-template-columns: 1.2fr 1fr 1fr; padding: 4px 0;">
-                    <span class="lbl success">S3 (Support 3)</span>
-                    <span id="val-s3" style="text-align: right;">24,275.00</span>
-                    <span id="dist-s3" style="text-align: right;">-0.92%</span>
+                  <div class="pb-spread"><span class="spread-price success" id="pv-spot">—</span><span class="spread-label">Pivot: <span id="pv-pivot">—</span></span></div>
+                  <div class="pb-bids" id="pb-bids">
+                    <div class="pb-row" data-target="sl" data-id="s1"><span class="lbl success">S1</span><span id="pv-s1">—</span><span id="pd-s1">—</span></div>
+                    <div class="pb-row" data-target="sl" data-id="s2"><span class="lbl success">S2</span><span id="pv-s2">—</span><span id="pd-s2">—</span></div>
+                    <div class="pb-row" data-target="sl" data-id="s3"><span class="lbl success">S3</span><span id="pv-s3">—</span><span id="pd-s3">—</span></div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- Orchestrator Console logs -->
-            <div id="pane-console" class="pane-view">
-              <div class="pro-console-card">
-                <div class="console-tools">
-                  <span class="c-title">Deals & Coordination Streams</span>
-                  <button id="btn-clear-console" class="text-link-btn">Clear Logs</button>
-                </div>
-                <div class="pro-console-body" id="console-logs">
-                  <div class="log-entry system">[System] Connection established. Core trading engine synced to IST.</div>
+              <!-- Console Pane -->
+              <div class="tw-pane" id="tpane-console">
+                <div class="console-box">
+                  <div class="console-tools"><span class="ctitle"><i class="fas fa-terminal"></i> Coordination Stream</span><button class="btn-text" onclick="ATES.UI.clearConsole()">Clear</button></div>
+                  <div class="console-body" id="console-logs"><div class="log system">[System] ATES v2.0 initialized. Ready.</div></div>
                 </div>
               </div>
-            </div>
-
-            <!-- Disciplined inspector -->
-            <div id="pane-inspector" class="pane-view">
-              <div class="card-body">
-                <h3 class="panel-subtitle">Disciplined Core Confluence Inspector</h3>
-                <form id="discipline-form" class="pro-form">
-                  <div class="form-row">
-                    <div class="form-group">
-                      <label>Underlying Symbol</label>
-                      <div class="symbol-pills">
-                        <button type="button" class="pill-btn" data-sym="NIFTY">NIFTY</button>
-                        <button type="button" class="pill-btn" data-sym="RELIANCE">RELIANCE</button>
-                        <button type="button" class="pill-btn" data-sym="BTC">BTC</button>
-                        <button type="button" class="pill-btn" data-sym="ETH">ETH</button>
-                        <button type="button" class="pill-btn" data-sym="SOL">SOL</button>
+              <!-- Discipline Pane -->
+              <div class="tw-pane" id="tpane-discipline">                    <div class="discipline-inspector">
+                  <h4><i class="fas fa-shield-alt"></i> Discipline Core Inspector</h4>
+                  <form id="discipline-form" class="dis-form">
+                    <div class="df-row">
+                      <div class="df-group"><label for="inspect-symbol">Symbol</label>
+                        <div class="pill-group">
+                          <button type="button" class="pill sm" data-sym="NIFTY">NIFTY</button>
+                          <button type="button" class="pill sm" data-sym="RELIANCE">RELIANCE</button>
+                          <button type="button" class="pill sm" data-sym="BTC">BTC</button>
+                          <button type="button" class="pill sm" data-sym="ETH">ETH</button>
+                          <button type="button" class="pill sm" data-sym="SOL">SOL</button>
+                        </div>
+                        <input type="text" id="inspect-symbol" value="NIFTY" aria-label="Symbol for discipline check">
                       </div>
-                      <input type="text" id="inspect-symbol" value="NIFTY" required>
+                      <div class="df-group"><label for="inspect-price">Price</label><input type="number" id="inspect-price" value="24500" step="0.01" aria-label="Price for discipline check"></div>
                     </div>
-                    <div class="form-group">
-                      <label>Spot Valuation (₹)</label>
-                      <input type="number" id="inspect-price" value="24500" step="0.01" required>
+                    <button type="submit" class="btn btn-secondary"><i class="fas fa-check-double"></i> Run Discipline Check</button>
+                  </form>
+                  <div id="inspector-output" class="inspect-output hidden"></div>
+                </div>
+              </div>
+              <!-- Backtest Pane -->
+              <div class="tw-pane" id="tpane-backtest">
+                <div class="backtest-panel">
+                  <h4><i class="fas fa-flask"></i> Simulation Backtester</h4>
+                  <p class="desc">Run a 50-cycle simulation to validate the current ruleset.</p>
+                  <button id="btn-run-backtest" class="btn btn-primary"><i class="fas fa-play"></i> Run Backtest</button>
+                  <div id="backtest-results" class="bt-results hidden">
+                    <div class="bt-metrics">
+                      <div class="btm"><span class="btm-lbl">Trades</span><span class="btm-val" id="bt-trades">—</span></div>
+                      <div class="btm"><span class="btm-lbl">Win Rate</span><span class="btm-val success" id="bt-winrate">—</span></div>
+                      <div class="btm"><span class="btm-lbl">Net P&L</span><span class="btm-val" id="bt-pnl">—</span></div>
+                      <div class="btm"><span class="btm-lbl">Max DD</span><span class="btm-val danger" id="bt-drawdown">—</span></div>
                     </div>
+                    <div class="bt-log" id="bt-log"></div>
                   </div>
-                  <button type="submit" class="btn btn-secondary">Run Core Validation Audit</button>
-                </form>
-                <div id="inspector-output" class="inspector-output hidden">
-                  <div class="audit-status" id="audit-badge">PASSED</div>
-                  <div class="audit-details" id="audit-details"></div>
+                </div>
+              </div>
+              <!-- Agents Pane (Tredo Hierarchy) -->
+              <div class="tw-pane" id="tpane-agents">
+                <div class="agents-panel">
+                  <h4><i class="fas fa-sitemap"></i> Tredo Agent Hierarchy</h4>
+                  <p class="desc">Live view of the autonomous agent tree. Click a node to see its role.</p>
+                  <div id="tredo-tree-container" class="tredo-tree">
+                    <div class="tree-loading"><i class="fas fa-spinner fa-spin"></i> Loading agent tree...</div>
+                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Backtest engine -->
-            <div id="pane-backtester" class="pane-view">
-              <div class="card-body">
-                <h3 class="panel-subtitle">Simulation Backtester</h3>
-                <p class="desc">Simulate historical cycles to backtest rulesets and win rate.</p>
-                <button id="btn-run-backtest" class="btn btn-primary">Run Simulation Backtester</button>
-                
-                <div id="backtest-results-container" class="backtest-results-pro hidden">
-                  <div class="metrics-row">
-                    <div class="m-card">
-                      <span class="m-lbl">Total Trades</span>
-                      <span class="m-val" id="bt-trades">-</span>
-                    </div>
-                    <div class="m-card">
-                      <span class="m-lbl">Win Rate</span>
-                      <span class="m-val" id="bt-winrate">-</span>
-                    </div>
-                    <div class="m-card">
-                      <span class="m-lbl">Net Profit</span>
-                      <span class="m-val success" id="bt-pnl">-</span>
-                    </div>
-                    <div class="m-card">
-                      <span class="m-lbl">Max Drawdown</span>
-                      <span class="m-val danger" id="bt-drawdown">-</span>
-                    </div>
+          <!-- Right: Order Ticket -->
+          <div class="tw-right">
+            <div class="order-ticket">
+              <div class="ot-header">
+                <button class="ot-dir active" data-dir="long"><i class="fas fa-arrow-up"></i> BUY / LONG</button>
+                <button class="ot-dir" data-dir="short"><i class="fas fa-arrow-down"></i> SELL / SHORT</button>
+              </div>
+              <form id="trade-form" class="ot-body">
+                <div class="ot-group"><label>Symbol</label>
+                  <div class="pill-group">
+                    <button type="button" class="pill active" data-sym="NIFTY">NIFTY</button>
+                    <button type="button" class="pill" data-sym="RELIANCE">RELIANCE</button>
+                    <button type="button" class="pill" data-sym="BTC">BTC</button>
+                    <button type="button" class="pill" data-sym="ETH">ETH</button>
+                    <button type="button" class="pill" data-sym="SOL">SOL</button>
                   </div>
-                  <div class="backtest-log" id="bt-message"></div>
+                </div>
+                <div class="ot-group"><label for="trade-entry">Entry Price</label><input type="number" id="trade-entry" value="24500" step="0.01" aria-label="Entry price"></div>
+                <div class="ot-row"><div class="ot-group"><label for="trade-sl">Stop Loss</label><input type="number" id="trade-sl" value="24250" step="0.01" aria-label="Stop loss price"></div><div class="ot-group"><label for="trade-tp">Take Profit</label><input type="number" id="trade-tp" value="24990" step="0.01" aria-label="Take profit price"></div></div>
+                <div class="ot-group">
+                  <label>Risk Allocation</label>
+                  <div class="risk-slider-wrap"><input type="range" min="1" max="5" value="1" class="risk-slider" id="risk-slider"><div class="slider-marks"><span>1%</span><span>2%</span><span>3%</span><span>4%</span><span>5%</span></div></div>
+                </div>                  <div class="ot-discipline">
+                  <label class="ot-check"><input type="checkbox" id="chk-confluence" checked aria-label="Enable confluence guard"><span>Confluence Guard</span></label>
+                  <label class="ot-check"><input type="checkbox" id="chk-session" checked aria-label="Enable session timing guard"><span>Session Guard</span></label>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block" id="btn-submit-order"><i class="fas fa-check"></i> BUY / LONG</button>
+              </form>
+              <div id="trade-output" class="trade-msg hidden"></div>
+              <div class="ot-quick">
+                <button class="btn btn-secondary btn-block" id="btn-trigger-cycle"><i class="fas fa-sync"></i> Trigger Orchestra Cycle</button>
+                <div id="cycle-output" class="cycle-logs hidden"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           PAGE: AI RESULTS
+           ══════════════════════════════════════════════════ -->
+      <div class="page" id="page-ai-results">
+        <div class="page-header">
+          <h1>AI Results</h1>
+          <p class="page-subtitle">Decision history, reflections & meta-learning</p>
+        </div>
+
+        <div class="ai-grid">
+          <!-- AI Decision Timeline -->
+          <div class="ai-panel wide">
+            <div class="panel-head">
+              <h3><i class="fas fa-brain"></i> AI Decision Timeline</h3>
+              <div class="panel-actions"><button class="btn-text" onclick="ATES.UI.clearDecisions()"><i class="fas fa-trash-alt"></i> Clear</button></div>
+            </div>
+            <div class="panel-body p-0">
+              <div class="ai-timeline" id="ai-timeline">
+                <div class="tl-empty">No AI decisions recorded yet. Run the system to see decisions.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Episodes + Reasoning Path + Reflections -->
+          <div class="ai-side">
+            <div class="ai-panel">
+              <div class="panel-head"><h3><i class="fas fa-code-branch"></i> Reasoning Path</h3></div>
+              <div class="panel-body p-0">
+                <div class="reasoning-path-panel" id="reasoning-path-content">
+                  <div class="tl-empty">No reasoning chains available.</div>
                 </div>
               </div>
             </div>
-
+            <div class="ai-panel">
+              <div class="panel-head"><h3><i class="fas fa-book"></i> Trade Episodes</h3></div>
+              <div class="panel-body p-0">
+                <div class="episode-list" id="episode-list">
+                  <div class="tl-empty">No trade episodes captured.</div>
+                </div>
+              </div>
+            </div>
+            <div class="ai-panel">
+              <div class="panel-head"><h3><i class="fas fa-lightbulb"></i> LLM Reflections</h3></div>
+              <div class="panel-body">
+                <div class="reflection-list" id="reflection-list">
+                  <div class="tl-empty">No reflections yet.</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-      </section>
-
-      <!-- Right Panel: Binance Order Ticket -->
-      <aside class="order-ticket-panel">
-        <div class="ticket-type-tabs">
-          <button class="dir-tab active" id="dir-long" data-dir="long">BUY / LONG</button>
-          <button class="dir-tab" id="dir-short" data-dir="short">SELL / SHORT</button>
-        </div>
-        <div class="ticket-body">
-          <form id="trade-form" class="pro-form">
-            <div class="form-group">
-              <label>Asset Symbol</label>
-              <div class="symbol-pills">
-                <button type="button" class="pill-btn" data-sym="NIFTY">NIFTY</button>
-                <button type="button" class="pill-btn" data-sym="RELIANCE">RELIANCE</button>
-                <button type="button" class="pill-btn" data-sym="BTC">BTC</button>
-                <button type="button" class="pill-btn" data-sym="ETH">ETH</button>
-                <button type="button" class="pill-btn" data-sym="SOL">SOL</button>
-              </div>
-              <input type="text" id="trade-symbol" value="NIFTY" required>
+        <!-- Bottom: Backtest History + Meta Review -->
+        <div class="dash-row" style="margin-top:16px">
+          <div class="dash-panel">
+            <div class="panel-head"><h3><i class="fas fa-history"></i> Backtest History</h3></div>
+            <div class="panel-body p-0">
+              <table class="dash-table" id="bt-history-table">
+                <thead><tr><th>Run</th><th>Trades</th><th>Win Rate</th><th>P&L</th><th>Max DD</th><th>Timestamp</th></tr></thead>
+                <tbody id="bt-history-body"><tr><td colspan="6" class="empty-state">No backtests run yet.</td></tr></tbody>
+              </table>
             </div>
-            <div class="form-group">
-              <label>Price Type</label>
-              <input type="text" value="Market (Simulated)" disabled class="disabled-input">
-            </div>
-            <div class="form-group">
-              <label>Entry Price (₹)</label>
-              <input type="number" id="trade-entry" value="24500" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label>Stop Loss Trigger (₹)</label>
-              <input type="number" id="trade-sl" value="24400" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label>Take Profit Target (₹)</label>
-              <input type="number" id="trade-tp" value="24700" step="0.01" required>
-            </div>
-
-            <!-- Position Size / Margin Heat slider -->
-            <div class="margin-slider-group">
-              <div class="slider-headers">
-                <label>Allocation Risk</label>
-                <span id="slider-val">1% (Default)</span>
-              </div>
-              <input type="range" min="1" max="5" value="1" class="pro-range-slider" id="risk-slider">
-              <div class="slider-markers">
-                <span>1%</span>
-                <span>2%</span>
-                <span>3%</span>
-                <span>4%</span>
-                <span>5%</span>
+          </div>
+          <div class="dash-panel">
+            <div class="panel-head"><h3><i class="fas fa-sync"></i> Meta Review</h3></div>
+            <div class="panel-body">
+              <div id="meta-review-content">
+                <p class="desc">Meta-control agent reviews high-regret episodes weekly and proposes rule adjustments.</p>
+                <button class="btn btn-secondary" onclick="ATES.UI.runMetaReview()"><i class="fas fa-sync"></i> Run Meta Review</button>
+                <div id="meta-review-output" class="meta-output hidden"></div>
               </div>
             </div>
-
-            <!-- Discipline Confluence settings -->
-            <div class="discipline-settings-group" style="margin-top: 10px; border-top: 1px dashed var(--border-color); padding-top: 10px; padding-bottom: 5px;">
-              <label style="margin-bottom: 6px; display: block;">Discipline Guards</label>
-              <div style="display: flex; flex-direction: column; gap: 8px;">
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: none; color: var(--text-secondary); cursor: pointer;">
-                  <input type="checkbox" id="chk-confluence" checked style="width: 13px; height: 13px; margin: 0; background: #12161a; border: 1px solid var(--border-color); cursor: pointer;">
-                  Confluence Guard
-                </label>
-                <label style="display: flex; align-items: center; gap: 8px; font-size: 10.5px; text-transform: none; color: var(--text-secondary); cursor: pointer;">
-                  <input type="checkbox" id="chk-session" checked style="width: 13px; height: 13px; margin: 0; background: #12161a; border: 1px solid var(--border-color); cursor: pointer;">
-                  Session Timing Guard
-                </label>
-              </div>
-            </div>
-
-            <button type="submit" class="btn btn-primary btn-block btn-trade-action" id="btn-submit-order">BUY / LONG</button>
-          </form>
-          
-          <div id="trade-output" class="trade-output-pro hidden"></div>
-
-          <!-- Quick System trigger sweep -->
-          <div class="quick-sweep-action">
-            <button class="btn btn-secondary btn-block" id="btn-trigger-cycle">Trigger Orchestra Sweep</button>
-            <div id="cycle-quick-output" class="ob-sweep-logs hidden"></div>
           </div>
         </div>
-      </aside>
+      </div>
 
-    </div>
+      <!-- ══════════════════════════════════════════════════
+           PAGE: ANALYSIS
+           ══════════════════════════════════════════════════ -->
+      <div class="page" id="page-analysis">
+        <div class="page-header">
+          <h1>Analysis</h1>
+          <p class="page-subtitle">Market intelligence, patterns & multi-timeframe</p>
+        </div>
+
+        <div class="analysis-grid">
+          <!-- Multi-Timeframe Data -->
+          <div class="an-panel">
+            <div class="panel-head"><h3><i class="fas fa-clock"></i> Multi-Timeframe</h3></div>
+            <div class="panel-body">
+              <div class="mtf-selector">
+                <label>Symbol:</label>
+                <div class="pill-group">
+                  <button class="pill active" data-sym="NIFTY" onclick="ATES.Analysis.selectSymbol('NIFTY')">NIFTY</button>
+                  <button class="pill" data-sym="BTC" onclick="ATES.Analysis.selectSymbol('BTC')">BTC</button>
+                  <button class="pill" data-sym="ETH" onclick="ATES.Analysis.selectSymbol('ETH')">ETH</button>
+                </div>
+              </div>
+              <div class="mtf-data" id="mtf-data">
+                <div class="mtf-empty">Loading multi-timeframe data...</div>
+              </div>
+            </div>
+          </div>
+          <!-- Candlestick Patterns -->
+          <div class="an-panel">
+            <div class="panel-head"><h3><i class="fas fa-candles"></i> Candlestick Patterns</h3></div>
+            <div class="panel-body">
+              <div class="patterns-display" id="patterns-display">
+                <div class="mtf-empty">No patterns detected yet. Market data required.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="analysis-grid" style="margin-top:16px">
+          <!-- News Sentiment -->
+          <div class="an-panel">
+            <div class="panel-head"><h3><i class="fas fa-newspaper"></i> News Sentiment</h3></div>
+            <div class="panel-body p-0">
+              <div class="news-feed" id="news-feed">
+                <div class="tl-empty">No news fetched. The medium loop fetches news every 5 minutes.</div>
+              </div>
+            </div>
+          </div>
+          <!-- Kronos Forecast -->
+          <div class="an-panel">
+            <div class="panel-head"><h3><i class="fas fa-chart-bar"></i> Kronos Forecast</h3></div>
+            <div class="panel-body">
+              <div id="kronos-display">
+                <div class="tl-empty">Kronos forecast not available. Ensure the Kronos service is running.</div>
+              </div>
+            </div>
+          </div>
+          <!-- Economic Calendar -->
+          <div class="an-panel">
+            <div class="panel-head"><h3><i class="fas fa-calendar-alt"></i> Economic Calendar</h3></div>
+            <div class="panel-body p-0">
+              <div class="cal-events" id="cal-events">
+                <div class="tl-empty">Loading calendar events...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════════
+           PAGE: SETTINGS
+           ══════════════════════════════════════════════════ -->
+      <div class="page" id="page-settings">
+        <div class="page-header">
+          <h1>Settings</h1>
+          <p class="page-subtitle">System configuration & risk management</p>
+        </div>
+
+        <div class="settings-grid">
+          <!-- Risk Parameters -->
+          <div class="set-panel">
+            <div class="panel-head"><h3><i class="fas fa-shield-alt"></i> Risk Parameters</h3></div>
+            <div class="panel-body">
+              <div class="set-group">
+                <label>Max Risk Per Trade</label>
+                <div class="set-input-wrap"><input type="range" min="0.5" max="5" step="0.5" value="1" id="set-max-risk"><span class="set-val" id="set-max-risk-val">1.0%</span></div>
+              </div>
+              <div class="set-group">
+                <label>Max Daily Trades</label>
+                <div class="set-input-wrap"><input type="number" value="10" id="set-max-trades" class="set-num"><span class="set-unit">trades</span></div>
+              </div>
+              <div class="set-group">
+                <label>Daily Loss Limit</label>
+                <div class="set-input-wrap"><input type="range" min="1" max="10" step="1" value="5" id="set-loss-limit"><span class="set-val" id="set-loss-limit-val">5.0%</span></div>
+              </div>
+              <div class="set-group">
+                <label>Daily Target P&L</label>
+                <div class="set-input-wrap"><input type="range" min="0.1" max="3" step="0.1" value="0.5" id="set-target"><span class="set-val" id="set-target-val">0.5%</span></div>
+              </div>
+              <div class="set-group">
+                <label>Trading Mode</label>
+                <div class="pill-group">
+                  <button class="pill active" data-mode="Normal" onclick="ATES.Settings.setMode('Normal')">Normal</button>
+                  <button class="pill" data-mode="Conservative" onclick="ATES.Settings.setMode('Conservative')">Conservative</button>
+                  <button class="pill" data-mode="Aggressive" onclick="ATES.Settings.setMode('Aggressive')">Aggressive</button>
+                  <button class="pill" data-mode="Halted" onclick="ATES.Settings.setMode('Halted')">Halted</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Discipline Rules -->
+          <div class="set-panel">
+            <div class="panel-head"><h3><i class="fas fa-gavel"></i> Discipline Rules</h3></div>
+            <div class="panel-body">
+              <label class="set-toggle"><input type="checkbox" id="cfg-confluence" checked><span><i class="fas fa-check-circle"></i> Confluence Guard</span></label>
+              <label class="set-toggle"><input type="checkbox" id="cfg-session" checked><span><i class="fas fa-clock"></i> Session Timing Guard</span></label>
+              <label class="set-toggle"><input type="checkbox" id="cfg-red-folder" checked><span><i class="fas fa-exclamation-triangle"></i> Red Folder Protection</span></label>
+              <label class="set-toggle"><input type="checkbox" id="cfg-overtrade" checked><span><i class="fas fa-ban"></i> Overtrading Prevention</span></label>
+              <label class="set-toggle"><input type="checkbox" id="cfg-drawdown" checked><span><i class="fas fa-chart-line"></i> Drawdown Limit</span></label>
+              <div class="set-group" style="margin-top:12px">
+                <label>Pivot Method</label>
+                <select id="cfg-pivot-method" class="set-select">
+                  <option value="Classic">Classic</option>
+                  <option value="Fibonacci">Fibonacci</option>
+                  <option value="Woodie">Woodie</option>
+                  <option value="Camarilla">Camarilla</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Model / LLM Configuration -->
+          <div class="set-panel">
+            <div class="panel-head"><h3><i class="fas fa-microchip"></i> Model & LLM</h3></div>
+            <div class="panel-body">
+              <div class="set-group"><label>Ollama Model</label><input type="text" value="ministral-3:3b-cloud" id="cfg-model" class="set-input"></div>
+              <div class="set-group"><label>Ollama Endpoint</label><input type="text" value="http://localhost:11434/api/generate" id="cfg-endpoint" class="set-input"></div>
+              <div class="set-group"><label>Kronos Service URL</label><input type="text" value="http://localhost:8000" id="cfg-kronos-url" class="set-input"></div>
+              <div class="set-group"><label>Initial Balance</label><input type="number" value="100000" id="cfg-balance" class="set-input"></div>
+              <button class="btn btn-secondary" onclick="ATES.Settings.save()"><i class="fas fa-save"></i> Save Configuration</button>
+              <div id="cfg-save-msg" class="cfg-save-msg hidden">Configuration saved.</div>
+            </div>
+          </div>
+
+          <!-- Watchlist Management -->
+          <div class="set-panel">
+            <div class="panel-head"><h3><i class="fas fa-list"></i> Watchlist</h3></div>
+            <div class="panel-body">
+              <div class="wl-manage" id="wl-manage">
+                <div class="wl-chip" data-sym="NIFTY">NIFTY <i class="fas fa-times" onclick="ATES.Settings.removeWatchlist('NIFTY')"></i></div>
+                <div class="wl-chip" data-sym="RELIANCE">RELIANCE <i class="fas fa-times" onclick="ATES.Settings.removeWatchlist('RELIANCE')"></i></div>
+                <div class="wl-chip" data-sym="BTC">BTC <i class="fas fa-times" onclick="ATES.Settings.removeWatchlist('BTC')"></i></div>
+                <div class="wl-chip" data-sym="ETH">ETH <i class="fas fa-times" onclick="ATES.Settings.removeWatchlist('ETH')"></i></div>
+                <div class="wl-chip" data-sym="SOL">SOL <i class="fas fa-times" onclick="ATES.Settings.removeWatchlist('SOL')"></i></div>
+              </div>
+              <div class="wl-add">                        <input type="text" id="wl-add-input" placeholder="Add symbol..." class="set-input" aria-label="Add symbol to watchlist"><button class="btn btn-secondary btn-sm" onclick="ATES.Settings.addWatchlist()"><i class="fas fa-plus"></i> Add</button></div>
+            </div>
+          </div>
+
+          <!-- Brokerage API Configuration -->
+          <div class="set-panel">
+            <div class="panel-head"><h3><i class="fas fa-exchange-alt"></i> Brokerage API</h3></div>
+            <div class="panel-body">
+              <div class="set-group">
+                <label for="brk-status">Connection Status</label>
+                <div id="brk-status" class="brk-status"><span style="color:#444">●</span> Not configured</div>
+              </div>
+              <div class="set-group">
+                <label for="brk-broker">Broker</label>
+                <select id="brk-broker" class="set-select" onchange="ATES.BrokerageConfig.saveForm()">
+                  <option value="zerodha">Zerodha (Kite)</option>
+                  <option value="angel">Angel One</option>
+                  <option value="icici">ICICI Direct</option>
+                  <option value="upstox">Upstox</option>
+                  <option value="dhan">Dhan</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="set-group">
+                <label for="brk-api-key">API Key</label>
+                <input type="password" id="brk-api-key" class="set-input" placeholder="Enter your broker API key" autocomplete="off">
+              </div>
+              <div class="set-group">
+                <label for="brk-api-secret">API Secret / Token</label>
+                <input type="password" id="brk-api-secret" class="set-input" placeholder="Enter your API secret" autocomplete="off">
+              </div>
+              <div class="set-group">
+                <label for="brk-base-url">API Base URL</label>
+                <input type="text" id="brk-base-url" class="set-input" value="https://api.kite.trade" placeholder="Broker API endpoint">
+              </div>
+              <div class="set-group">
+                <label>Trading Mode</label>
+                <div class="pill-group">
+                  <button class="pill active" data-brk-mode="paper" onclick="ATES.BrokerageConfig.setMode('paper')">📄 Paper Trading</button>
+                  <button class="pill" data-brk-mode="live" onclick="ATES.BrokerageConfig.setMode('live')">🔴 Live Trading</button>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+                <button class="btn btn-secondary btn-sm" onclick="ATES.BrokerageConfig.saveForm()"><i class="fas fa-save"></i> Save</button>
+                <button class="btn btn-secondary btn-sm" onclick="ATES.BrokerageConfig.testConnection()"><i class="fas fa-plug"></i> Test Connection</button>
+                <button class="btn btn-secondary btn-sm" onclick="ATES.BrokerageConfig.clearCredentials()"><i class="fas fa-eraser"></i> Clear Credentials</button>
+              </div>
+              <div style="margin-top:10px;padding:8px;background:rgba(240,185,11,0.06);border-radius:var(--radius-sm);font-size:10px;color:var(--warn);border:1px solid rgba(240,185,11,0.15)">
+                <i class="fas fa-info-circle"></i> Use <strong>Paper Trading</strong> mode to test with play money. Switch to <strong>Live Trading</strong> only when you're ready for real money.
+              </div>
+            </div>
+          </div>
+
+          <!-- System Controls -->
+          <div class="set-panel">
+            <div class="panel-head"><h3><i class="fas fa-power-off"></i> System Controls</h3></div>
+            <div class="panel-body">
+              <button class="btn btn-secondary btn-block" onclick="ATES.System.reset()"><i class="fas fa-undo"></i> Reset Portfolio</button>
+              <button class="btn btn-secondary btn-block" onclick="ATES.UI.clearAllData()"><i class="fas fa-eraser"></i> Clear All Data</button>
+              <button class="btn btn-secondary btn-block" onclick="ATES.UI.exportData()"><i class="fas fa-download"></i> Export Data (JSON)</button>
+              <div class="sys-info">
+                <div class="si-item"><span>Version</span><span>ATES v2.0</span></div>
+                <div class="si-item"><span>Database</span><span>redb (ates_autonomous.redb)</span></div>
+                <div class="si-item"><span>Vector Store</span><span>ates_vectors.json</span></div>
+                <div class="si-item"><span>Uptime</span><span id="sys-uptime">0h 0m</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </main>
   </div>
-  <script src="app.js"></script>
+
+  <!-- Notification Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+</div>
+<script src="app.js"></script>
 </body>
 </html>

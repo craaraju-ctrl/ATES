@@ -6,7 +6,9 @@ use ates_core::{
     MarketContext, calculate_pivot_points, calculate_confluence_score,
     is_in_trading_session,
     KronosForecastTool, KronosForecastRequest, OhlcvBar,
-    TrendDirection,
+    TrendDirection, detect_patterns, format_patterns,
+    MultiTfPatternConfirmation,
+    detect_patterns_multi_tf,
 };
 use crate::state::SharedState;
 
@@ -20,6 +22,7 @@ impl MarketIntelligenceAgent {
     }
 
     /// Run Kronos forecast + pivot/confluence analysis for a symbol.
+    /// Uses the real OHLCV history from SharedState (fetched from Binance/Yahoo).
     /// Stores the full Kronos forecast JSON in SharedState.last_forecast for Phase 5 (LLM).
     pub async fn analyze_market(&self, symbol: &str, price: f64) -> Result<(f64, ates_core::PivotLevels), Box<dyn Error + Send + Sync>> {
         let rules = self.state.rules.read().await;
@@ -31,21 +34,40 @@ impl MarketIntelligenceAgent {
         // --- Kronos Forecast Service ---
         let kronos_client = KronosForecastTool::new(self.state.config.kronos_service_url.clone());
 
-        let sample_ohlcv = vec![
-            OhlcvBar {
-                timestamp: Utc::now().to_rfc3339(),
-                open:  prev_close,
-                high,
-                low,
-                close: price,
-                volume: 100_000.0,
-            }
-        ];
+        // Read real OHLCV history from SharedState (fetched by orchestrator from Binance/Yahoo)
+        let ohlcv_for_kronos: Vec<OhlcvBar> = {
+            let history = self.state.ohlcv_history.read().await;
+            history.get(symbol).cloned().unwrap_or_default()
+        };
+
+        // Fallback: if no history available, build a single bar from current price
+        let sample_ohlcv = if ohlcv_for_kronos.is_empty() {
+            vec![
+                OhlcvBar {
+                    timestamp: Utc::now().to_rfc3339(),
+                    open:  prev_close,
+                    high,
+                    low,
+                    close: price,
+                    volume: 100_000.0,
+                }
+            ]
+        } else {
+            ohlcv_for_kronos
+        };
+
+        let pred_len = if sample_ohlcv.len() >= 10 { 10 } else { 5 };
+
+        println!(
+            "[MarketIntelligence] Feeding {} OHLCV bars to Kronos for {}",
+            sample_ohlcv.len(),
+            symbol
+        );
 
         let forecast_req = KronosForecastRequest {
             symbol: symbol.to_string(),
             ohlcv:  sample_ohlcv,
-            pred_len:     5,
+            pred_len,
             temperature:  0.8,
             top_p:        0.9,
             sample_count: 1,
@@ -101,6 +123,12 @@ impl MarketIntelligenceAgent {
             }
         }
 
+        // Read real portfolio equity for accurate drawdown calculations
+        let equity = {
+            let portfolio = self.state.portfolio.read().await;
+            portfolio.total_equity
+        };
+
         let context = MarketContext {
             symbol: symbol.to_string(),
             current_price: price,
@@ -109,6 +137,7 @@ impl MarketIntelligenceAgent {
             previous_close: prev_close,
             timestamp: Utc::now(),
             daily_pnl: 0.0,
+            equity,
             consecutive_losses: 0,
             is_red_folder_day: false,
             trend_direction,
@@ -116,7 +145,8 @@ impl MarketIntelligenceAgent {
 
         let pivots    = calculate_pivot_points(high, low, prev_close, rules.pivot_method);
         let confluence = calculate_confluence_score(&context, &pivots);
-        let session_valid = is_in_trading_session(Utc::now(), &rules);
+        let is_crypto = matches!(symbol, "BTC" | "ETH" | "SOL");
+        let session_valid = is_crypto || is_in_trading_session(Utc::now(), &rules);
 
         println!(
             "[MarketIntelligence] {} @ {:.2} | Pivot: {:.2} | R1: {:.2} | S1: {:.2} | Confluence: {:.2}% | Session: {} | {}",
@@ -126,9 +156,75 @@ impl MarketIntelligenceAgent {
             forecast_summary
         );
 
+        // ── Candlestick Pattern Detection (Single-TF on 1m) ─────────────────
+        let detected_patterns = {
+            let history = self.state.ohlcv_history.read().await;
+            let bars = history.get(symbol).cloned().unwrap_or_default();
+            if bars.len() >= 2 {
+                let pats = detect_patterns(&bars);
+                if !pats.is_empty() {
+                    println!("[MarketIntelligence] 📊 1m Patterns for {}: {}", symbol,
+                        pats.iter().map(|p| format!("{} ({:.0}%)", p.name, p.strength * 100.0)).collect::<Vec<_>>().join(", "));
+                }
+                pats
+            } else {
+                vec![]
+            }
+        };
+        let patterns_context = format_patterns(&detected_patterns);
+
+        // Store detected patterns in SharedState for episode capture
+        {
+            let mut stored = self.state.last_patterns.write().await;
+            stored.insert(symbol.to_string(), detected_patterns);
+        }
+
+        // ── Multi-Timeframe Pattern Detection & Confirmation ────────────────
+        let mtf_patterns = {
+            let mtf_data = self.state.multi_timeframe_data.read().await;
+            let data = mtf_data.get(symbol);
+            if let Some(tf_data) = data {
+                if tf_data.len() >= 2 {
+                    // Build (&str, &[OhlcvBar]) pairs for all available timeframes including 1m
+                    let bars_1m_owned: Vec<OhlcvBar> = {
+                        let history = self.state.ohlcv_history.read().await;
+                        history.get(symbol).cloned().unwrap_or_default()
+                    };
+
+                    let mut tf_pairs: Vec<(&str, &[OhlcvBar])> = Vec::new();
+                    if !bars_1m_owned.is_empty() {
+                        tf_pairs.push(("1m", bars_1m_owned.as_slice()));
+                    }
+                    for tf in tf_data {
+                        if !tf.ohlcv.is_empty() {
+                            tf_pairs.push((tf.timeframe.as_str(), tf.ohlcv.as_slice()));
+                        }
+                    }
+
+                    let mtf = detect_patterns_multi_tf(&tf_pairs);
+                    if !mtf.timeframes_with_patterns.is_empty() {
+                        println!("[MarketIntelligence] 🔄 Multi-TF patterns for {}: confirmed on {} timeframes | bullish={} bearish={}",
+                            symbol, mtf.timeframes_with_patterns.len(),
+                            mtf.bullish_confirmation, mtf.bearish_confirmation);
+                    }
+                    mtf
+                } else {
+                    // Need at least 2 timeframes for meaningful confirmation
+                    MultiTfPatternConfirmation::default()
+                }                } else {
+                MultiTfPatternConfirmation::default()
+            }
+        };
+
+        // Store multi-TF pattern confirmation
+        {
+            let mut stored = self.state.last_mtf_patterns.write().await;
+            stored.insert(symbol.to_string(), mtf_patterns);
+        }
+
         let _ = self.state.memory.store_decision(
             &format!("market/{}/{}", symbol, Utc::now().timestamp()),
-            &format!("price={:.2},confluence={:.3},trend={:?}", price, confluence, trend_direction),
+            &format!("price={:.2},confluence={:.3},trend={:?},patterns={}", price, confluence, trend_direction, patterns_context),
         );
 
         {

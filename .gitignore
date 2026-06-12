@@ -2,5 +2,10 @@
 /src-tauri/target
 /src-tauri/gen
 .DS_Store
-ates_autonomous.redb
-ates_memory.redb
+*.redb
+*.redb.lock
+*.db
+*.db-wal
+*.db-shm
+test_*.redb
+test_*.redb.lock
