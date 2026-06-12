@@ -23,8 +23,17 @@ const invoke = hasTauri
         return "ORCHESTRA CYCLE COMPLETE | All Main + Sub-Agents coordinated | Message Router active";
       }
       if (cmd === 'fetch_live_stock_price') {
-        // Mock fallback return for standard browser dev environment
         return args.symbol === 'NIFTY' ? 24500.00 + (Math.random() * 10 - 5) : 2950.00 + (Math.random() * 4 - 2);
+      }
+      // ── RUN SYSTEM mocks ──
+      if (cmd === 'start_autonomous_system') {
+        return JSON.stringify({ status: 'starting', kronos: true, orchestrator: true });
+      }
+      if (cmd === 'stop_autonomous_system') return 'System stopped';
+      if (cmd === 'get_system_health') {
+        // Simulate services becoming active after start
+        const running = window._atesRunning || false;
+        return JSON.stringify({ kronos: running, orchestrator: running, llm: running, running });
       }
       return "SUCCESS";
     };
@@ -1006,3 +1015,197 @@ startPositionEvaluatorAndCandleTick();
 document.querySelectorAll(`.symbol-pills .pill-btn[data-sym="NIFTY"]`).forEach(p => p.classList.add('active'));
 
 logMessage("Real-time Watchlist and WebSockets active. Ready.", 'system');
+
+// ═══════════════════════════════════════════════════════════════════════════
+//  RUN SYSTEM CONTROLLER
+//  Manages the RUN / STOP button, service ribbon, and health polling.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RunSystem = {
+  state: 'stopped',   // 'stopped' | 'starting' | 'running' | 'stopping'
+  healthTimer: null,
+  cycleCount: 0,
+
+  // ── UI references ────────────────────────────────────────────────────────
+  btn()   { return document.getElementById('btn-run'); },
+  label() { return this.btn()?.querySelector('.run-btn-label'); },
+  icon()  { return this.btn()?.querySelector('.run-btn-icon'); },
+
+  // ── Set button visual state ───────────────────────────────────────────────
+  setButtonState(state) {
+    const btn = this.btn();
+    if (!btn) return;
+    btn.classList.remove('stopped', 'starting', 'running', 'stopping');
+    btn.classList.add(state);
+    this.state = state;
+
+    const labels = {
+      stopped:  { icon: '▶', text: 'RUN SYSTEM' },
+      starting: { icon: '⟳', text: 'STARTING...' },
+      running:  { icon: '■', text: 'RUNNING' },
+      stopping: { icon: '⏹', text: 'STOPPING...' },
+    };
+    const l = labels[state];
+    if (this.label()) this.label().textContent = l.text;
+    if (this.icon())  this.icon().textContent  = l.icon;
+  },
+
+  // ── Update the ribbon service badge ──────────────────────────────────────
+  setRibbonService(id, dotClass, stateText, stateClass) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.querySelector('.ribbon-dot').className   = `ribbon-dot ${dotClass}`;
+    const s = el.querySelector('.ribbon-state');
+    s.textContent  = stateText;
+    s.className    = `ribbon-state ${stateClass}`;
+  },
+
+  // ── Poll get_system_health every 3s ──────────────────────────────────────
+  startHealthPolling() {
+    this.stopHealthPolling();
+    this.healthTimer = setInterval(async () => {
+      try {
+        const raw    = await invoke('get_system_health');
+        const health = typeof raw === 'string' ? JSON.parse(raw) : raw;
+        this.applyHealth(health);
+      } catch (e) { /* silent */ }
+    }, 3000);
+  },
+
+  stopHealthPolling() {
+    if (this.healthTimer) { clearInterval(this.healthTimer); this.healthTimer = null; }
+  },
+
+  // ── Apply health response to ribbon UI ───────────────────────────────────
+  applyHealth(h) {
+    this.setRibbonService(
+      'ribbon-kronos',
+      h.kronos       ? 'on'   : 'off',
+      h.kronos       ? 'FORECASTING' : 'OFFLINE',
+      h.kronos       ? 'active' : ''
+    );
+    this.setRibbonService(
+      'ribbon-orch',
+      h.orchestrator ? 'on'   : 'warn',
+      h.orchestrator ? 'LLM ACTIVE'  : 'STARTING',
+      h.orchestrator ? 'active' : 'warn'
+    );
+    this.setRibbonService(
+      'ribbon-llm',
+      h.llm          ? 'on'   : 'off',
+      h.llm          ? 'ministral-3'  : 'STANDBY',
+      h.llm          ? 'active' : ''
+    );
+
+    // Update cycle counter
+    if (h.running) {
+      this.cycleCount++;
+      const cyEl = document.getElementById('ribbon-cycle');
+      if (cyEl) cyEl.textContent = `#${this.cycleCount}`;
+    }
+
+    // Auto-transition from 'starting' to 'running' once services are up
+    if (this.state === 'starting' && (h.kronos || h.orchestrator)) {
+      this.setButtonState('running');
+      logMessage('[System] ✅ Autonomous system ONLINE — Kronos + Orchestrator active', 'system');
+      logMessage('[LLM] 🤖 ministral-3:3b-cloud connected — autonomous trade decisions active', 'system');
+    }
+  },
+
+  // ── LAUNCH ───────────────────────────────────────────────────────────────
+  async start() {
+    this.setButtonState('starting');
+    logMessage('[System] ▶ Launching ATES Autonomous System...', 'system');
+    logMessage('[Kronos] ⏳ Starting Forecasting Service (port 8000)...', 'system');
+    logMessage('[Orchestrator] ⏳ Launching Autonomous Agent Loop (Ollama + Kronos)...', 'system');
+
+    // Browser-only flag so mock health returns true
+    window._atesRunning = true;
+
+    try {
+      const raw = await invoke('start_autonomous_system');
+      const res = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+      if (res.kronos)       logMessage('[Kronos] ✅ Forecasting Service spawned', 'system');
+      if (res.orchestrator) logMessage('[Orchestrator] ✅ Agent loop spawned — LLM deciding trades every 5s', 'system');
+
+      this.startHealthPolling();
+
+      // If response says already starting, wait for polling to transition to 'running'
+      // (Tauri backend takes a moment to boot services)
+      setTimeout(async () => {
+        if (this.state === 'starting') {
+          const raw2 = await invoke('get_system_health').catch(() => null);
+          if (raw2) {
+            const h = typeof raw2 === 'string' ? JSON.parse(raw2) : raw2;
+            this.applyHealth(h);
+          }
+        }
+      }, 2000);
+
+    } catch (err) {
+      logMessage(`[System] ❌ Failed to start: ${err}`, 'system');
+      this.setButtonState('stopped');
+      window._atesRunning = false;
+    }
+  },
+
+  // ── STOP ─────────────────────────────────────────────────────────────────
+  async stop() {
+    this.setButtonState('stopping');
+    logMessage('[System] ⏹ Stopping autonomous system...', 'system');
+    window._atesRunning = false;
+
+    try {
+      await invoke('stop_autonomous_system');
+      logMessage('[System] 🛑 Kronos + Orchestrator stopped', 'system');
+    } catch (e) {
+      logMessage(`[System] Stop error: ${e}`, 'system');
+    }
+
+    this.stopHealthPolling();
+    this.cycleCount = 0;
+
+    // Reset ribbon
+    ['ribbon-kronos', 'ribbon-orch', 'ribbon-llm'].forEach(id => {
+      this.setRibbonService(id, 'off', 'OFFLINE', '');
+    });
+    ['ribbon-cycle', 'ribbon-pos-count', 'ribbon-pnl-val'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '—';
+    });
+
+    this.setButtonState('stopped');
+  },
+};
+
+// Exposed globally so the onclick in HTML can call it
+window.runSystemToggle = function () {
+  if (RunSystem.state === 'stopped')  RunSystem.start();
+  else if (RunSystem.state === 'running') RunSystem.stop();
+  // 'starting' and 'stopping' ignore clicks (button pointer-events: none for stopping)
+};
+
+// ── Update ribbon position / P&L from existing position state ─────────────
+function updateRibbonPositions() {
+  const posEl = document.getElementById('ribbon-pos-count');
+  const pnlEl = document.getElementById('ribbon-pnl-val');
+  if (!posEl || !pnlEl) return;
+
+  posEl.textContent = positions.length > 0 ? positions.length : '0';
+
+  const totalPnl = positions.reduce((sum, p) => {
+    const pnl = p.direction === 'long'
+      ? (currentMarketPrice - p.entry) * p.qty
+      : (p.entry - currentMarketPrice) * p.qty;
+    return sum + pnl;
+  }, 0);
+
+  pnlEl.textContent   = `₹${totalPnl >= 0 ? '+' : ''}${totalPnl.toFixed(2)}`;
+  pnlEl.className     = `ribbon-stat-val ${totalPnl >= 0 ? 'pos' : 'neg'}`;
+}
+
+// Hook ribbon updates into the existing position evaluator tick
+const _origEval = window._positionEvalTick;
+setInterval(updateRibbonPositions, 2000);
+

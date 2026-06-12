@@ -914,3 +914,240 @@ input.disabled-input {
 input[type="checkbox"] {
   accent-color: var(--brand-yellow);
 }
+
+/* ═══════════════════════════════════════════════════════
+   RUN SYSTEM BUTTON
+═══════════════════════════════════════════════════════ */
+
+.run-system-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.run-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 18px 6px 14px;
+  border-radius: 22px;
+  border: 1.5px solid var(--success-color);
+  background: rgba(14, 203, 129, 0.06);
+  color: var(--success-color);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+  white-space: nowrap;
+  box-shadow: 0 0 12px rgba(14, 203, 129, 0.18),
+              inset 0 0 10px rgba(14, 203, 129, 0.04);
+}
+
+.run-btn:hover {
+  background: rgba(14, 203, 129, 0.14);
+  box-shadow: 0 0 24px rgba(14, 203, 129, 0.40),
+              inset 0 0 12px rgba(14, 203, 129, 0.06);
+  transform: translateY(-1px);
+}
+
+.run-btn:active {
+  transform: translateY(0px);
+}
+
+/* Pulse ring behind button */
+.run-btn-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success-color);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.run-btn-pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--success-color);
+  opacity: 0;
+}
+
+/* ── Stopped state (default) ── */
+.run-btn.stopped .run-btn-pulse {
+  background: #444;
+  box-shadow: none;
+}
+.run-btn.stopped .run-btn-pulse::after { display: none; }
+.run-btn.stopped {
+  border-color: #555;
+  color: #aaa;
+  background: transparent;
+  box-shadow: none;
+}
+.run-btn.stopped:hover {
+  border-color: var(--success-color);
+  color: var(--success-color);
+  background: rgba(14, 203, 129, 0.07);
+  box-shadow: 0 0 16px rgba(14, 203, 129, 0.25);
+  transform: translateY(-1px);
+}
+
+/* ── Starting state ── */
+.run-btn.starting {
+  border-color: var(--warning-color);
+  color: var(--warning-color);
+  background: rgba(240, 185, 11, 0.07);
+  box-shadow: 0 0 14px rgba(240, 185, 11, 0.25);
+}
+.run-btn.starting .run-btn-pulse {
+  background: var(--warning-color);
+  animation: run-pulse-spin 0.8s linear infinite;
+}
+
+/* ── Running state ── */
+.run-btn.running {
+  border-color: var(--success-color);
+  color: var(--success-color);
+  background: rgba(14, 203, 129, 0.12);
+  box-shadow: 0 0 20px rgba(14, 203, 129, 0.35),
+              0 0 40px rgba(14, 203, 129, 0.12);
+}
+.run-btn.running .run-btn-pulse {
+  background: var(--success-color);
+  box-shadow: 0 0 6px var(--success-color);
+  animation: run-pulse-beat 1.4s ease-in-out infinite;
+}
+.run-btn.running .run-btn-pulse::after {
+  animation: run-pulse-ring 1.4s ease-out infinite;
+}
+
+/* ── Stopping state ── */
+.run-btn.stopping {
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+  background: rgba(246, 70, 93, 0.07);
+  box-shadow: 0 0 14px rgba(246, 70, 93, 0.25);
+  pointer-events: none;
+}
+.run-btn.stopping .run-btn-pulse { background: var(--danger-color); }
+
+@keyframes run-pulse-beat {
+  0%, 100% { transform: scale(1);   opacity: 1; }
+  50%       { transform: scale(0.7); opacity: 0.6; }
+}
+@keyframes run-pulse-ring {
+  0%   { transform: scale(0.8); opacity: 0.8; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes run-pulse-spin {
+  0%   { transform: scale(0.6); opacity: 0.4; }
+  50%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.6); opacity: 0.4; }
+}
+
+/* ═══════════════════════════════════════════════════════
+   SYSTEM STATUS RIBBON  (below navbar)
+═══════════════════════════════════════════════════════ */
+
+.sys-ribbon {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 28px;
+  background: #0d1117;
+  border-bottom: 1px solid var(--border-color);
+  padding: 0 16px;
+  overflow: hidden;
+  transition: height 0.3s ease;
+}
+
+.ribbon-svc {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-right: 1px solid var(--border-color);
+  height: 100%;
+}
+
+.ribbon-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+.ribbon-dot.off  { background: #333; }
+.ribbon-dot.on   { background: var(--success-color);
+                   box-shadow: 0 0 6px var(--success-color);
+                   animation: run-pulse-beat 2s ease-in-out infinite; }
+.ribbon-dot.warn { background: var(--warning-color);
+                   box-shadow: 0 0 5px var(--warning-color);
+                   animation: run-pulse-beat 1s ease-in-out infinite; }
+
+.ribbon-name {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.ribbon-state {
+  font-size: 9px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.04);
+  color: var(--text-secondary);
+  transition: all 0.3s ease;
+}
+.ribbon-state.active {
+  background: rgba(14, 203, 129, 0.12);
+  color: var(--success-color);
+}
+.ribbon-state.warn {
+  background: rgba(240, 185, 11, 0.12);
+  color: var(--warning-color);
+}
+
+.ribbon-divider {
+  width: 1px;
+  height: 16px;
+  background: var(--border-color);
+  margin: 0 8px;
+  flex-shrink: 0;
+}
+
+.ribbon-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.ribbon-stat-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.ribbon-stat-val {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+.ribbon-stat-val.pos { color: var(--success-color); }
+.ribbon-stat-val.neg { color: var(--danger-color); }
+

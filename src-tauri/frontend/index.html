@@ -45,12 +45,54 @@
           <span class="bal-label">Margin Balance:</span>
           <span class="bal-val" id="margin-balance">₹100,000.00</span>
         </div>
+
+        <!-- ── RUN SYSTEM BUTTON ── -->
+        <div class="run-system-wrap">
+          <button id="btn-run" class="run-btn stopped" onclick="runSystemToggle()">
+            <span class="run-btn-pulse"></span>
+            <span class="run-btn-icon">▶</span>
+            <span class="run-btn-label">RUN SYSTEM</span>
+          </button>
+        </div>
+
         <div class="system-status-indicator">
           <div class="status-dot success" id="status-dot"></div>
           <span id="status-text">Core Online</span>
         </div>
       </div>
     </header>
+
+    <!-- ── System Status Ribbon ── -->
+    <div class="sys-ribbon" id="sys-ribbon">
+      <div class="ribbon-svc" id="ribbon-kronos">
+        <span class="ribbon-dot off"></span>
+        <span class="ribbon-name">KRONOS</span>
+        <span class="ribbon-state">OFFLINE</span>
+      </div>
+      <div class="ribbon-svc" id="ribbon-orch">
+        <span class="ribbon-dot off"></span>
+        <span class="ribbon-name">ORCHESTRATOR</span>
+        <span class="ribbon-state">OFFLINE</span>
+      </div>
+      <div class="ribbon-svc" id="ribbon-llm">
+        <span class="ribbon-dot off"></span>
+        <span class="ribbon-name">LLM (ministral-3)</span>
+        <span class="ribbon-state">STANDBY</span>
+      </div>
+      <div class="ribbon-divider"></div>
+      <div class="ribbon-stat" id="ribbon-positions">
+        <span class="ribbon-stat-label">POSITIONS</span>
+        <span class="ribbon-stat-val" id="ribbon-pos-count">—</span>
+      </div>
+      <div class="ribbon-stat" id="ribbon-pnl">
+        <span class="ribbon-stat-label">TODAY P&L</span>
+        <span class="ribbon-stat-val" id="ribbon-pnl-val">—</span>
+      </div>
+      <div class="ribbon-stat">
+        <span class="ribbon-stat-label">CYCLE</span>
+        <span class="ribbon-stat-val" id="ribbon-cycle">—</span>
+      </div>
+    </div><!-- /.sys-ribbon -->
 
     <!-- Main Grid Workspace -->
     <div class="binance-workspace">
