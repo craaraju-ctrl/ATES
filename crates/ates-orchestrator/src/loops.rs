@@ -32,15 +32,14 @@ pub async fn fast_loop(
                     // Get latest known price
                     let old_price = {
                         let portfolio = orchestrator.state.portfolio.read().await;
-                        portfolio.open_positions.iter()
-                            .find(|pos| pos.symbol == *symbol)
-                            .map(|pos| pos.current_price)
-                            .unwrap_or_else(|| {
-                                let history = orchestrator.state.ohlcv_history.blocking_read();
-                                history.get(symbol.as_str())
-                                    .and_then(|h| h.last().map(|b| b.close))
-                                    .unwrap_or(20000.0)
-                            })
+                        if let Some(pos) = portfolio.open_positions.iter().find(|pos| pos.symbol == *symbol) {
+                            pos.current_price
+                        } else {
+                            let history = orchestrator.state.ohlcv_history.read().await;
+                            history.get(symbol.as_str())
+                                .and_then(|h| h.last().map(|b| b.close))
+                                .unwrap_or(20000.0)
+                        }
                     };
 
                     // Fetch live price
@@ -69,7 +68,7 @@ pub async fn fast_loop(
                 let cycle_num = Utc::now().timestamp();
                 if cycle_num % 60 < 6 {
                     let p = orchestrator.state.portfolio.read().await;
-                    log_portfolio_snapshot(&p, &orchestrator.state);
+                    log_portfolio_snapshot(&p, &orchestrator.state).await;
                 }
             }
         }
@@ -104,15 +103,14 @@ pub async fn medium_loop(
 
                     let price = {
                         let portfolio = orchestrator.state.portfolio.read().await;
-                        portfolio.open_positions.iter()
-                            .find(|pos| pos.symbol == *symbol)
-                            .map(|pos| pos.current_price)
-                            .unwrap_or_else(|| {
-                                let history = orchestrator.state.ohlcv_history.blocking_read();
-                                history.get(symbol.as_str())
-                                    .and_then(|h| h.last().map(|b| b.close))
-                                    .unwrap_or(20000.0)
-                            })
+                        if let Some(pos) = portfolio.open_positions.iter().find(|pos| pos.symbol == *symbol) {
+                            pos.current_price
+                        } else {
+                            let history = orchestrator.state.ohlcv_history.read().await;
+                            history.get(symbol.as_str())
+                                .and_then(|h| h.last().map(|b| b.close))
+                                .unwrap_or(20000.0)
+                        }
                     };
 
                     let change = price - 20000.0; // approximate direction
@@ -630,8 +628,8 @@ pub async fn save_portfolio_state(state: &SharedState) {
     }
 }
 
-fn log_portfolio_snapshot(portfolio: &PortfolioState, state: &SharedState) {
-    let goals = state.trading_goals.blocking_read();
+async fn log_portfolio_snapshot(portfolio: &PortfolioState, state: &SharedState) {
+    let goals = state.trading_goals.read().await;
     println!("\n📊 [Portfolio] Equity: ₹{:.2} | Cash: ₹{:.2} | Positions: {} | P&L: ₹{:.2} | DD: {:.2}%",
         portfolio.total_equity, portfolio.cash_balance, portfolio.open_positions.len(),
         portfolio.daily_pnl, portfolio.max_drawdown_today * 100.0);
