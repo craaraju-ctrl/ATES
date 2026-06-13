@@ -1,0 +1,35 @@
+// CorrelationChecker (pairs skill/tool stub)
+// For pairs trading upgrade. Research: Enhances mean-reversion in correlated assets (crypto focus).
+use crate::state::SharedState;
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
+
+pub struct CorrelationChecker {
+    pub state: SharedState,
+}
+
+impl CorrelationChecker {
+    pub fn new(state: SharedState) -> Self { Self { state } }
+
+    pub async fn check_correlation(&self, symbol: &str) -> f64 {
+        // Stub: in real would use multi-symbol history. For now, return proxy based on symbol.
+        match symbol {
+            "BTC" | "ETH" => 0.75, // high crypto pair corr
+            "NIFTY" => 0.4,
+            _ => 0.5,
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for CorrelationChecker {
+    fn tier(&self) -> AgentTier { AgentTier::Sub }
+    async fn run(&self, input: AgentInput) -> Result<AgentOutput, Box<dyn std::error::Error + Send + Sync>> {
+        let corr = self.check_correlation(&input.symbol).await;
+        Ok(AgentOutput {
+            action: if corr > 0.65 { "HIGH_CORR_PAIRS" } else { "LOW_CORR" }.to_string(),
+            confidence: corr,
+            reasoning: format!("Proxy correlation: {:.2}", corr),
+            data: Some(serde_json::json!({"corr": corr})),
+        })
+    }
+}

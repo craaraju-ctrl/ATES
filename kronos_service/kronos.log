@@ -1,0 +1,146 @@
+[KronosService] Loading Kronos model...
+/Users/varma/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+[Kronos] Loading amazon/chronos-bolt-base...
+`torch_dtype` is deprecated! Use `dtype` instead!
+`torch_dtype` is deprecated! Use `dtype` instead!
+[Kronos] ✅ amazon/chronos-bolt-base loaded — real AI forecasting active
+[KronosService] Kronos model loaded successfully and ready.
+INFO:     Started server process [25634]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 23622.9000 → Predicted: 23624.4102
+INFO:     127.0.0.1:60411 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 23622.9000 → Predicted: 23620.2910
+INFO:     127.0.0.1:60423 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 1293.0000 → Predicted: 1293.1521
+INFO:     127.0.0.1:60424 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 63438.1900 → Predicted: 63435.9258
+INFO:     127.0.0.1:60425 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 1666.1900 → Predicted: 1666.1425
+INFO:     127.0.0.1:60426 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 66.9100 → Predicted: 66.8292
+INFO:     127.0.0.1:60427 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 23622.9000 → Predicted: 23605.7539
+INFO:     127.0.0.1:60463 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 63503.2900 → Predicted: 63474.4414
+INFO:     127.0.0.1:60467 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 1668.1700 → Predicted: 1666.7748
+INFO:     127.0.0.1:60468 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 67.0200 → Predicted: 66.8673
+INFO:     127.0.0.1:60469 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 5 bars | Entry: 24500.0000 → Predicted: 24500.0000
+INFO:     127.0.0.1:60503 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:60502 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:60504 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:60505 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 3502.6229 → Predicted: 3503.2996
+INFO:     127.0.0.1:60509 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:60510 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:60511 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:60514 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:60517 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 5 bars | Entry: 24500.0000 → Predicted: 24500.0000
+INFO:     127.0.0.1:60518 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:60519 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 3502.6229 → Predicted: 3503.2996
+INFO:     127.0.0.1:60520 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:60521 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:60522 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:60523 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 5 bars | Entry: 24500.0000 → Predicted: 24500.0000
+INFO:     127.0.0.1:61097 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:61098 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:61099 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:61100 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 65048.7101 → Predicted: 65061.2773
+INFO:     127.0.0.1:61101 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:61104 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 3502.6229 → Predicted: 3503.2996
+INFO:     127.0.0.1:61105 - "POST /forecast HTTP/1.1" 200 OK
+/Users/varma/Desktop/ATES/kronos_service/main.py:48: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+  data = [bar.dict() for bar in request.ohlcv]
+[Kronos] ✅ Chronos-Bolt forecast for 10 bars | Entry: 180.1349 → Predicted: 180.1697
+INFO:     127.0.0.1:61108 - "POST /forecast HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61182 - "GET /health HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:61192 - "GET /health HTTP/1.1" 404 Not Found

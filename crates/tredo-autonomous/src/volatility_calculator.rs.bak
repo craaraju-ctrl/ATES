@@ -1,0 +1,47 @@
+// VolatilityCalculator Sub-Agent (new tool/skill)
+// Computes ATR, expansion for breakout/vol strategies.
+// Upgrades risk and MI with regime-aware vol detection.
+
+use crate::state::SharedState;
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput, MarketContext};
+
+pub struct VolatilityCalculator {
+    pub state: SharedState,
+}
+
+impl VolatilityCalculator {
+    pub fn new(state: SharedState) -> Self {
+        Self { state }
+    }
+
+    pub async fn compute_volatility(&self, symbol: &str, price: f64) -> (f64, bool) {
+        let history = self.state.ohlcv_history.read().await;
+        if let Some(bars) = history.get(symbol) {
+            if bars.len() < 15 { return (0.01, false); }
+            let mut atr = 0.0;
+            for i in (bars.len()-14)..bars.len() {
+                let range = (bars[i].high - bars[i].low).abs();
+                atr += range;
+            }
+            atr /= 14.0;
+            let atr_pct = atr / price;
+            let expansion = atr_pct > 0.015; // vol expansion threshold
+            return (atr_pct, expansion);
+        }
+        (0.01, false)
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for VolatilityCalculator {
+    fn tier(&self) -> AgentTier { AgentTier::Sub }
+    async fn run(&self, input: AgentInput) -> Result<AgentOutput, Box<dyn std::error::Error + Send + Sync>> {
+        let (vol, expansion) = self.compute_volatility(&input.symbol, input.price).await;
+        Ok(AgentOutput {
+            action: if expansion { "VOL_EXPANSION" } else { "NORMAL_VOL" }.to_string(),
+            confidence: (vol * 50.0).min(1.0),
+            reasoning: format!("ATR% {:.2}%, expansion: {}", vol*100.0, expansion),
+            data: Some(serde_json::json!({ "atr_pct": vol, "expansion": expansion })),
+        })
+    }
+}

@@ -1,0 +1,38 @@
+// OnChainData tool/skill stub for crypto (easy extension).
+// Research-backed: on-chain flows for crypto-specific confluence (as in original ATES design).
+// Free API stub (e.g. use public blockchain explorers or mock; in prod use ethers or blockcypher).
+
+use crate::state::SharedState;
+use ates_core::{Agent, AgentTier, AgentInput, AgentOutput};
+
+pub struct OnChainData {
+    pub state: SharedState,
+}
+
+impl OnChainData {
+    pub fn new(state: SharedState) -> Self { Self { state } }
+
+    pub async fn fetch_onchain(&self, symbol: &str) -> f64 {
+        // Stub: for BTC/ETH return mock "flow" score (positive = accumulation).
+        // Real: query API for active addresses, exchange inflows, etc.
+        if symbol == "BTC" || symbol == "ETH" {
+            0.65 // bullish on-chain
+        } else {
+            0.5
+        }
+    }
+}
+
+#[async_trait::async_trait]
+impl Agent for OnChainData {
+    fn tier(&self) -> AgentTier { AgentTier::Sub }
+    async fn run(&self, input: AgentInput) -> Result<AgentOutput, Box<dyn std::error::Error + Send + Sync>> {
+        let flow = self.fetch_onchain("stub").await;
+        Ok(AgentOutput {
+            action: if flow > 0.6 { "ONCHAIN_ACCUM" } else { "ONCHAIN_NEUTRAL" }.to_string(),
+            confidence: flow,
+            reasoning: format!("On-chain flow score: {:.2} (stub for symbol)", flow),
+            data: Some(serde_json::json!({"onchain_flow": flow})),
+        })
+    }
+}
