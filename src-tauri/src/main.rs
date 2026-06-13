@@ -535,18 +535,24 @@ async fn trigger_orchestra_cycle(state: State<'_, Mutex<AppState>>) -> Result<St
         match orch.run_full_pipeline(sym, dir, entry, stop, target).await {
             Ok(summary) => {
                 let action = summary.final_signal
-                    .map(|s| format!("{} {:.2}",
-                        if s.direction == TradeDirection::Long { "BUY" } else { "SELL" },
-                        s.entry_price))
+                    .map(|s| {
+                        format!(
+                            "{} {:.2}",
+                            if s.direction == TradeDirection::Long {
+                                "BUY"
+                            } else {
+                                "SELL"
+                            },
+                            s.entry_price
+                        )
+                    })
                     .unwrap_or_else(|| "HOLD".to_string());
                 Ok(format!(
                     "ORCHESTRA CYCLE COMPLETE | Action: {} | Reason: {} | Duration: {}ms",
                     action, summary.reason, summary.total_duration_ms
                 ))
             }
-            Err(e) => {
-                Ok(format!("ORCHESTRA CYCLE ERROR: {}", e))
-            }
+            Err(e) => Ok(format!("ORCHESTRA CYCLE ERROR: {}", e)),
         }
     } else {
         Ok("ORCHESTRA CYCLE COMPLETE | No in-process orchestrator — run start_autonomous_system first".to_string())
@@ -560,7 +566,8 @@ async fn main() {
     log::info!("[tredo UI] Starting Tauri application...");
 
     // Initialize in-process orchestrator
-    let orch = initialize_autonomous_system().await
+    let orch = initialize_autonomous_system()
+        .await
         .expect("Failed to initialize autonomous orchestrator");
 
     let app_state = AppState {
